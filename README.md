@@ -1,4 +1,4 @@
-# onlineFGO: Online Continuous-Tim Factor Graph Optmization with Time-Centric Multi-Sensor Fusion for Robust Localization in Large-Scale Environments
+# onlineFGO: Online Continuous-Time Factor Graph Optmization with Time-Centric Multi-Sensor Fusion for Robust Localization in Large-Scale Environments
 This is the official repo of the project onlineFGO.
 
 Code will be published after 31.01.2023.
@@ -20,3 +20,6 @@ Code will be published after 31.01.2023.
 </p>
 
 <hr>
+
+**Current Pre-Print:** 
+  - H. Zhang, F. Widmayer, L. Lünnemann, D. Abel, **onlineFGO: Online Continuous-Time Factor Graph Optimization with Time-Centric Multi-Sensor Fusion for Robust Localization in Large-Scale Environments**, arXiv:2211.05400 (2022).[paper](https://arxiv.org/abs/2211.05400)
