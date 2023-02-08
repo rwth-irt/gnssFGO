@@ -1,7 +1,9 @@
 # onlineFGO: Online Continuous-Time Factor Graph Optmization with Time-Centric Multi-Sensor Fusion for Robust Localization in Large-Scale Environments
 This is the official repo of the project onlineFGO.
 
-Code will be published after 31.01.2023.
+Code will be published in Mai based on the publication schedule. 
+
+For more information and sample request, please contact h.zhang@irt.rwth-aaachen.de
 
 <hr>
 
