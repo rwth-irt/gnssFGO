@@ -80,3 +80,9 @@ git clone --recursive https://github.com/rwth-irt/gnssFGO.git
   ```
   ros2 launch lio_sam fgorun.launch.py 
   ```
+
+---
+## ToDos:
+1. Clean code base and move general utilities to irt_nav_common
+2. Fix bugs for GNSS carrier phase integration
+3. Implement visual odometry
