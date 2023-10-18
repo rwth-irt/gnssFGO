@@ -1,0 +1,202 @@
+---
+/deutschland/online_fgo:
+    ros__parameters:
+      GNSSFGO:
+        IntegratorBase:
+          StateSensorSyncTimeThreshold: 0.02
+          IMUSensorSyncTimeThreshold: 0.005
+
+        GNSSTCIntegrator:
+          NLOSCSVFilePath: ""
+          integratorPlugin: "GNSSTCIntegrator"
+          GNSSMeasurementFrequency: 10
+          zeroVelocityThreshold: 0.04
+
+          delayFromPPS: false
+          useDualAntenna: false
+          useDualAntennaDD: false
+
+          addCBDPriorFactorOnNoGNSS: false
+          usePseudoRangeDoppler: true
+          usePseudoRange: false
+          useDopplerRange: false
+          useDDCarrierPhase: false
+          useDDPseudoRange: false
+          useTDCarrierPhase: false
+          useRTCMDD: false
+
+          pseudorangeUseRawStd: false
+          pseudorangeFactorTil: 0  # 10s
+
+          pseudorangeVarScaleAntMain: 2400. #4800. #3600
+          #pseudorangeVarScaleAntMain: 10. #4800. #3600
+          dopplerrangeVarScaleAntMain: 8.
+          pseudorangeVarScaleAntAux: 2400. #4800. #3600
+          dopplerrangeVarScaleAntAux: 8.
+          carrierStdScale: 1000.
+          carrierphaseStd: 0.1
+
+          thresholdSatNumToCreateTDCP: 3  # > 2
+          ddCPStart: 1.0  #time we wait until we start making DDCP factor
+          initCovforIntAmb: 100.0 #changes kind of nothing
+          weightingModel: "STD"   # STD ELEV SNR
+
+          noiseModelPRDR: 'Cauchy'   # huber Cauchy gemanmcclure
+          noiseModelDDCP: 'Cauchy'   # huber
+          noiseModelTDCP: 'Cauchy'   # huber
+          robustParamPRDR: 0.5
+          robustParamDDCP: 0.5
+          robustParamTDCP: 0.5
+
+        IRTPVALCIntegrator:
+          integratorPlugin: "GNSSLCIntegrator"
+          useForInitialization: false
+          useHeaderTimestamp: true
+          GNSSMeasurementFrequency: 10
+          PVTSource: "irt"
+          hasHeading: true
+          hasPitch: false
+          hasRoll: false
+          integrateAttitude: true
+          integrateVelocity: false
+          onlyRTKFixed: false
+
+          zeroVelocityThreshold: 0.05
+          varScaleRTKFloat: 1.
+          varScaleSingle: 1.
+          varScaleHeadingSingle: 5.
+          varScaleHeadingRTKFloat: 3.
+          varScaleNoSolution: 1000.
+
+          solutionSyncQueueSize: 10
+          MsgSyncLowerBound: 50000000
+
+          fixedVelVar: 0.5
+          posVarScale: 1.
+          velVarScale: 2.
+          headingVarScale: 1.
+          headingOffsetDeg: 0.
+
+          attitudeFrame: "ned"
+          attitudeType: "yaw"
+          velocityFrame: "ned"
+          velocityType: "3d"
+          noiseModelAttitude: "cauchy"
+          noiseModelVelocity: "cauchy"
+          noiseModelPosition: "cauchy"
+          robustParamPos: 0.5
+          robustParamVel: 0.5
+          robustParamAtt: 0.5
+
+        LIOIntegrator:
+          notIntegrating: false
+          integratorPlugin: "LIOIntegrator"
+          pointCloudTopic: "/velodyne_points"
+          lidarFrame: "velodyne"
+          baselinkFrame: "base_link"
+          odometryFrame: "odom"
+          mapFrame: "map"
+          savePCD: false
+          savePCDDirectory: ""
+
+          integrateBetweenPose: true
+          integrateGlobalPose: false
+          odomPoseVar: [ 0.01, 0.01, 0.01, 0.16, 0.16, 0.16]
+          noiseModelOdomPose: "Cauchy"
+          robustParamOdomPose: .5
+
+          N_SCAN: 16
+          Horizon_SCAN: 1800
+          downsampleRate: 1
+          lidarMinRange: 4.
+          lidarMaxRange: 1000.
+          maxPosePriorLiDARMsgAging: 0.3
+          edgeFeatureMinValidNum: 10
+          surfFeatureMinValidNum: 100
+          numberOfCores: 16
+          mappingProcessInterval: 0.15
+          varianceRoll: 0.01
+          variancePitch: 0.01
+          varianceYaw: .01
+          varianceX: 0.01
+          varianceY: 0.01
+          varianceZ: 0.01
+
+          surroundingKeyframeSearchRadius: 50.
+          loopClosureEnableFlag: true
+          loopClosureFrequency: 1.
+          surroundingKeyframeSize: 50
+          historyKeyframeSearchRadius: 15.
+          historyKeyframeSearchTimeDiff: 30.
+          historyKeyframeSearchNum: 30
+          historyKeyframeFitnessScore: 0.3
+          globalMapVisualizationSearchRadius: 1000.
+          globalMapVisualizationPoseDensity: 10.
+          globalMapVisualizationLeafSize: 1.
+          imuRPYWeight: 0.01
+          z_tollerance: 1000.
+          rotation_tollerance: 1000.
+          mappingCornerLeafSize: 0.2
+          mappingSurfLeafSize: 0.4
+          surroundingkeyframeAddingDistThreshold: 0.2
+          surroundingkeyframeAddingAngleThreshold: 0.2
+          surroundingKeyframeDensity: 2.0
+
+          maxNumCachedMap: 1000000
+          maxPointAge: 10.
+          scan2MapOptIteration: 30
+          minSizeCurrentKeyframeCloud: 300
+          minSizePreviousKeyframeCloud: 1000
+          icpMaxIterations: 100
+          icpTransformEpsilon: 1e-6
+          icpEuclideanFitnessEpsilon: 1e-6
+          icpRANSACIterations: 0
+          freqLoopDetectionInSec: 5
+          freqVisualizationInSec: 5
+
+        CorrevitIntegrator:
+          integratorPlugin: "CorrevitIntegrator"
+          integrateVelocity: false
+          enablePreIntegration: false
+          velocitySigma: 0.1
+          integrationSigma: 0.0001
+          omegaIncrementSigma: 0.1
+
+          zeroVelocityThreshold: 0.01
+
+          solutionSyncQueueSize: 10
+          MsgSyncLowerBound: 50000000
+          nearZeroVelocityThreshold: -10.
+          factorizeDelay: 0.
+
+          StateMeasSyncUpperBound: 0.02
+          StateMeasSyncLowerBound: -0.02
+
+          fixedVelVar: 0.25
+          velVarScale: 1.
+          velVarVector: [ 0.005, 0.01, 99999. ]
+
+          velocityFrame: "body"   # enu, ned, body, ecef
+          velocityType: "2d"       # x, y, z, 2d, 3d
+          noiseModelVelocity: "Cauchy"
+          robustParamVel: 0.5
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

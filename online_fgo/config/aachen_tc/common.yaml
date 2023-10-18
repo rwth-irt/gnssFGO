@@ -1,0 +1,92 @@
+---
+/deutschland/online_fgo:
+    ros__parameters:
+      use_sim_time: true
+      GNSSFGO:
+        verbose: false
+        useIMUAsTimeReference: false
+        bufferSize: 10
+        optFrequency: 10 #in Hz
+        calcErrorOnOpt: true
+        cleanIMUonInit: true    # set this flag to clean the imu data before the timestamp of the initializing state
+        useHeaderTimestamp: true
+
+        Initialization:
+          initSigmaX: [ 5., 5., 5., 1., 1., 2.  ] #first 3 for Rot in degree, other for translation in m
+          initSigmaV: [ 1., 1., 1. ]
+          initSigmaW: [ 0.1, 0.1, 0.1]
+          initSigmaB: [ 0.1, 0.1, 0.1, 0.01, 0.01, 0.01] #first for b_a, second for b_g in degree
+          initSigmaC: [ 1000., 10. ] #cb in m, cd in m/s
+
+        IMUPreintegrator:
+          accelerometerSigma: 0.008077134407821842 #3.9939570888238808e-04 #8e-4 # 8e-4
+          integrationSigma:  1e-5
+          gyroscopeSigma: 0.0006939335887264338 #1.5636343949698187e-05   #52e-4 # 52e-5
+          biasAccSigma: 4e-4 # 4e-4 0.000167  #
+          biasOmegaSigma: 87e-5 # 87e-5
+          biasAccOmegaInt: 0.00001 # 0.00001
+          #accelerometerSigma: 0.008077134407821842 #3.9939570888238808e-04 #8e-4 # 8e-4
+          #integrationSigma: 0.  #1e-5
+          #gyroscopeSigma: 0.0006939335887264338 #1.5636343949698187e-05   #52e-4 # 52e-5
+          #biasAccSigma: 0.000167 # 4e-4
+          #biasOmegaSigma: 2.91e-6  #87e-5 # 87e-5
+          #biasAccOmegaInt: 0.00001 # 0.00001
+
+        Graph:
+          publishResiduals: false
+          IMUMeasurementFrequency: 100
+          useGPPriorFactor: true
+          gpType: 'WNOJ'  # 'WNOA'
+          useGPInterpolatedFactor: true
+          useEstimatedVarianceAfterInit: false
+
+          AutoDiffNormalFactor: true
+          AutoDiffGPInterpolatedFactor: true
+          AutoDiffGPMotionPriorFactor: false
+          GPInterpolatedFactorCalcJacobian: true
+
+          StateMeasSyncUpperBound: 0.02
+          StateMeasSyncLowerBound: -0.02
+          useMMFactor: false
+          useConstDriftFactor: true
+
+          #constBiasStd: 0.2
+          #constDriftStd: .067
+          constBiasStd: 1.
+          constDriftStd: 1.
+          noiseModelClockFactor: "gaussian"
+          robustParamClockFactor: 2.
+          motionModelStd: 1.
+          angularRateStd: 0.1
+
+          NoOptimizationWhileNoMeasurement: false
+          NoOptimizationNearZeroVelocity: false
+          VoteNearZeroVelocity: 0.1 # 20%
+          NoOptimizationAfterStates: 0
+
+        VehicleParameters:
+          transIMUToReference: [ -0.11, -0.49, -0.2085 ] # AC
+          rotIMUToReference:   [ 1., 0., 0., 0., 1., 0., 0., 0., 1. ]
+          transIMUToGNSSAnt1:  [-0.11, -0.49, -0.2085]
+          transIMUToGNSSAnt2:  [ -0.11, 0.49, -0.2085 ]
+          transIMUToLiDAR:     [0.301411, 0., -0.0596]  # lb = rot.rotate(lb_imu^Lidar)
+          rotIMUToLiDAR:       [ 1., 0., 0., 0., -1., 0., 0., 0., -1. ]
+
+        Integrators: ["GNSSTCIntegrator", ]   # ["GNSSTCIntegrator", "LIOIntegrator"]
+
+        Optimizer:
+          #undefined, BatchFixedLag, IncrementalFixedLag
+          smootherType: 'IncrementalFixedLag'
+          smootherLag: 3. #marginalization threshhold
+          #QcGPWNOJInterpolatorFull: [ 10000., 10000., 10000., 10000., 10000., 10000. ]
+          #QcGPWNOJMotionPriorFull: [ 10000., 10000., 10000., 10000., 10000., 10000. ]
+          QcGPWNOJInterpolatorFull: [ 10000., 10000., 10000., 10000., 10000., 10000. ]
+          QcGPWNOJMotionPriorFull: [ 10000., 10000., 10000., 10000., 10000., 10000. ]
+          #QcGPWNOAInterpolator: 0.5
+          #QcGPWNOAMotionPrior: 0.5
+          QcGPWNOAInterpolatorFull: [1.666669, 1.666669, 1.666669, 16.66669, 16.66669, 16.66669 ]
+          QcGPWNOAMotionPriorFull: [1.666669, 1.666669, 1.666669, 16.66669, 16.66669, 16.66669 ]
+          #QcGPWNOAInterpolatorFull: [ .16691, .16691, .16691, 1.666669, 1.666669, 1.666669 ]
+          #QcGPWNOAMotionPriorFull: [ .16691, .16691, .16691, 1.666669, 1.666669, 1.666669 ]
+          #QcGPWNOAInterpolatorFull: [ 0.5, 0.5, 0.5, 0.5, 0.5, 0.5 ]
+          #QcGPWNOAMotionPriorFull: [ 0.5, 0.5, 0.5, 0.5, 0.5, 0.5 ]

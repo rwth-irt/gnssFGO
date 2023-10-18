@@ -1,0 +1,133 @@
+---
+/deutschland/online_fgo:
+    ros__parameters:
+      GNSSFGO:
+        IntegratorBase:
+          StateSensorSyncTimeThreshold: 0.01
+          IMUSensorSyncTimeThreshold: 0.01
+
+        IRTPVALCIntegrator:
+          integratorPlugin: "GNSSLCIntegrator"
+          useForInitialization: true
+          useHeaderTimestamp: true
+          GNSSMeasurementFrequency: 10
+          PVTSource: "irt"
+          hasHeading: true
+          hasPitch: false
+          hasRoll: false
+          integrateAttitude: true
+          integrateVelocity: false
+          onlyRTKFixed: false
+
+          zeroVelocityThreshold: 0.06
+          varScaleRTKFloat: 5.
+          varScaleSingle:   10.
+          varScaleHeadingSingle: 5.
+          varScaleHeadingRTKFloat: 2.
+          varScaleNoSolution: 1000.
+
+          solutionSyncQueueSize: 10
+          MsgSyncLowerBound: 50000000
+
+          fixedVelVar: 0.5
+          posVarScale: 1.
+          velVarScale: 5.
+          headingVarScale: 2.
+          headingOffsetDeg: 0.
+
+          attitudeFrame: "ned"
+          attitudeType: "yaw"
+          velocityFrame: "ned"
+          velocityType: "3d"
+          noiseModelAttitude: "cauchy"
+          noiseModelVelocity: "cauchy"
+          noiseModelPosition: "cauchy"
+          robustParamPos: 0.5
+          robustParamVel: 0.5
+          robustParamAtt: 0.5
+
+        LIOIntegrator:
+          notIntegrating: false
+          integratorPlugin: "LIOIntegrator"
+          pointCloudTopic: "/velodyne_points"
+          lidarFrame: "velodyne"
+          baselinkFrame: "base_link"
+          odometryFrame: "odom"
+          mapFrame: "map"
+          savePCD: false
+          savePCDDirectory: ""
+
+          integrateBetweenPose: true
+          integrateGlobalPose: false
+          odomPoseVar: [0.25, 0.25, 0.25, 0.25, 0.16, 0.16]
+          noiseModelOdomPose: "Cauchy"
+          robustParamOdomPose: 0.5
+
+          N_SCAN: 16
+          Horizon_SCAN: 1800
+          downsampleRate: 1
+          lidarMinRange: 4.
+          lidarMaxRange: 1000.
+          maxPosePriorLiDARMsgAging: 0.1
+          edgeFeatureMinValidNum: 10
+          surfFeatureMinValidNum: 100
+          numberOfCores: 16
+          mappingProcessInterval: 0.15
+          varianceRoll: 0.01 # 5 deg
+          variancePitch: 0.01
+          varianceYaw: 0.01
+          varianceX: 0.01
+          varianceY: 0.04
+          varianceZ: 0.04
+
+          surroundingKeyframeSearchRadius: 50.
+          loopClosureEnableFlag: false
+          loopClosureFrequency: 1.
+          surroundingKeyframeSize: 50
+          historyKeyframeSearchRadius: 15.
+          historyKeyframeSearchTimeDiff: 30.
+          historyKeyframeSearchNum: 30
+          historyKeyframeFitnessScore: 0.3
+          globalMapVisualizationSearchRadius: 1000.
+          globalMapVisualizationPoseDensity: 10.
+          globalMapVisualizationLeafSize: 1.
+          imuRPYWeight: 0.01
+          z_tollerance: 1000.
+          rotation_tollerance: 1000.
+          mappingCornerLeafSize: 0.2
+          mappingSurfLeafSize: 0.4
+          surroundingkeyframeAddingDistThreshold: 0.2
+          surroundingkeyframeAddingAngleThreshold: 0.2
+          surroundingKeyframeDensity: 2.0
+
+          maxNumCachedMap: 10000
+          maxPointAge: 10.
+          scan2MapOptIteration: 30
+          minSizeCurrentKeyframeCloud: 300
+          minSizePreviousKeyframeCloud: 1000
+          icpMaxIterations: 100
+          icpTransformEpsilon: 1e-6
+          icpEuclideanFitnessEpsilon: 1e-6
+          icpRANSACIterations: 0
+          freqLoopDetectionInSec: 5
+          freqVisualizationInSec: 5
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

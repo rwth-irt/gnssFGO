@@ -1,0 +1,188 @@
+---
+/deutschland/online_fgo:
+    ros__parameters:
+      GNSSFGO:
+        IntegratorBase:
+          StateSensorSyncTimeThreshold: 0.02
+          IMUSensorSyncTimeThreshold: 0.005
+
+        IRTPVALCIntegrator:
+          integratorPlugin: "GNSSLCIntegrator"
+          useForInitialization: true
+          useHeaderTimestamp: true
+          GNSSMeasurementFrequency: 10
+          PVTSource: "irt"
+          hasHeading: true
+          hasPitch: false
+          hasRoll: false
+          integrateAttitude: false
+          integrateVelocity: false
+          onlyRTKFixed: false
+
+          solutionSyncQueueSize: 10
+          MsgSyncLowerBound: 50000000
+
+          fixedVelVar: 0.05
+          posVarScale: 1.
+          velVarScale: 1.
+          headingVarScale: 1.
+          headingOffsetDeg: 0.
+
+          attitudeFrame: "ned"
+          attitudeType: "yaw"
+          velocityFrame: "ned"
+          velocityType: "3d"
+          noiseModelAttitude: "cauchy"
+          noiseModelVelocity: "cauchy"
+          noiseModelPosition: "cauchy"
+          robustParamPos: 0.5
+          robustParamVel: 0.5
+          robustParamAtt: 0.5
+
+        UbloxLCIntegrator:
+          integratorPlugin: "GNSSLCIntegrator"
+          useForInitialization: false
+          useHeaderTimestamp: true
+          transIMUToGNSSAnt1: [ 0., 0., -0.04 ] # [0.0, 0.0, 0.0]
+
+          GNSSMeasurementFrequency: 10
+          PVTSource: "ublox"
+          hasHeading: true
+          hasPitch: false
+          hasRoll: false
+          integrateAttitude: false
+          integrateVelocity: false
+          onlyRTKFixed: false
+
+          solutionSyncQueueSize: 10
+          MsgSyncLowerBound: 50000000
+
+          fixedVelVar: 0.25
+          posVarScale: 10.
+          velVarScale: 1.
+          headingVarScale: 1.
+          headingOffsetDeg: 0.
+
+          attitudeFrame: "ned"
+          attitudeType: "yaw"
+          velocityFrame: "ned"
+          velocityType: "3d"
+          noiseModelAttitude: "cauchy"
+          noiseModelVelocity: "cauchy"
+          noiseModelPosition: "cauchy"
+          robustParamPos: 0.5
+          robustParamVel: 0.5
+          robustParamAtt: 0.5
+
+          NovatelBestposTopic: "/novatel/oem7/bestpos"
+          NovatelBestvelTopic: "/novatel/oem7/bestvel"
+          NovatelHeadingTopic: "/novatel/oem7/dualantennaheading"
+
+          ubloxPVTTopic: "/ublox/navpvt"
+          navfixTopic: "/ublox/fix"
+
+        CorrevitIntegrator:
+          integratorPlugin: "CorrevitIntegrator"
+          integrateVelocity: true
+          solutionSyncQueueSize: 10
+          MsgSyncLowerBound: 50000000
+          nearZeroVelocityThreshold: -0.01
+          factorizeDelay: 0.
+
+          StateMeasSyncUpperBound: 0.01
+          StateMeasSyncLowerBound: -0.01
+
+          fixedVelVar: 0.25
+          velVarScale: 1.
+          velVarVector: [0.1, 0.1, 99999.]
+
+          velocityFrame: "body"   # enu, ned, body, ecef
+          velocityType: "2d"       # x, y, z, 2d, 3d
+          noiseModelVelocity: "Cauchy"
+          robustParamVel: 0.5
+
+        LIOIntegrator:
+          notIntegrating: true
+          integratorPlugin: "LIOIntegrator"
+          pointCloudTopic: "/velodyne_points"
+          lidarFrame: "velodyne"
+          baselinkFrame: "base_link"
+          odometryFrame: "odom"
+          mapFrame: "map"
+          savePCD: false
+          savePCDDirectory: ""
+
+          integrateBetweenPose: true
+          integrateGlobalPose: false
+          odomPoseVar: [0.5, 0.5, 0.5, 1., 1., 1.]
+          noiseModelOdomPose: "Cauchy"
+          robustParamOdomPose: 0.5
+
+          N_SCAN: 16
+          Horizon_SCAN: 1800
+          downsampleRate: 1
+          lidarMinRange: 3.
+          lidarMaxRange: 1000.
+          maxPosePriorLiDARMsgAging: 0.1
+          edgeFeatureMinValidNum: 10
+          surfFeatureMinValidNum: 100
+          numberOfCores: 8
+          mappingProcessInterval: 0.15
+          varianceRoll: 0.16
+          variancePitch: 0.16
+          varianceYaw: 0.25
+          varianceX: 0.054
+          varianceY: 0.054
+          varianceZ: 0.09
+
+          surroundingKeyframeSearchRadius: 50.
+          loopClosureEnableFlag: true
+          loopClosureFrequency: 1.
+          surroundingKeyframeSize: 50
+          historyKeyframeSearchRadius: 15.
+          historyKeyframeSearchTimeDiff: 30.
+          historyKeyframeSearchNum: 30
+          historyKeyframeFitnessScore: 0.3
+          globalMapVisualizationSearchRadius: 1000.
+          globalMapVisualizationPoseDensity: 10.
+          globalMapVisualizationLeafSize: 1.
+          imuRPYWeight: 0.01
+          z_tollerance: 1000.
+          rotation_tollerance: 1000.
+          mappingCornerLeafSize: 0.2
+          mappingSurfLeafSize: 0.4
+          surroundingkeyframeAddingDistThreshold: 0.2
+          surroundingkeyframeAddingAngleThreshold: 0.2
+          surroundingKeyframeDensity: 2.0
+
+          maxNumCachedMap: 1000000
+          maxPointAge: 10.
+          scan2MapOptIteration: 30
+          minSizeCurrentKeyframeCloud: 300
+          minSizePreviousKeyframeCloud: 1000
+          icpMaxIterations: 100
+          icpTransformEpsilon: 1e-6
+          icpEuclideanFitnessEpsilon: 1e-6
+          icpRANSACIterations: 0
+          freqLoopDetectionInSec: 5
+          freqVisualizationInSec: 5
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

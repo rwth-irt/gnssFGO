@@ -1,0 +1,94 @@
+---
+/urbanloco/online_fgo:
+    ros__parameters:
+      use_sim_time: true
+      GNSSFGO:
+        verbose: false
+        useIMUAsTimeReference: false
+        bufferSize: 10
+        optFrequency: 10 #in Hz
+        #optStrategy: 'onIMU' # 'onGNSS' or 'onIMU'
+        calcErrorOnOpt: true
+        IMUTopic: "/imu/data"
+        cleanIMUonInit: true    # set this flag to clean the imu data before the timestamp of the initializing state
+        useHeaderTimestamp: true
+        delayFromPPS: false
+        #pubPoseVel: true
+        #pubFGOState: true
+        #pubPVTError: true
+        #pubTimer: true
+        #msg_lower_bound: 5000000 # 5 ms
+
+        Initialization:
+          initSigmaX: [ 2., 2., 2., 1., 1., 2. ] #first 3 for Rot in degree, other for translation in m
+          initSigmaV: [ 1., 1., 1. ]
+          initSigmaW: [ 0.05, 0.05, 0.05]
+          initSigmaB: [ 0.5, 0.5, 0.5, 0.05, 0.05, 0.05] #first for b_a, second for b_g in degree
+          initSigmaC: [ 1000., 10. ] #cb in m, cd in m/s
+
+        IMUPreintegrator:
+          accelerometerSigma: 0.08077134407821842 #3.9939570888238808e-04 #8e-4 # 8e-4
+          integrationSigma: 1e-3 # 1e-4
+          gyroscopeSigma: 0.06939335887264338 #1.5636343949698187e-05   #52e-4 # 52e-5
+          biasAccSigma: 4e-4 # 4e-4
+          biasOmegaSigma: 87e-5 # 87e-5
+          biasAccOmegaInt: 0.00001 # 0.00001
+
+        Graph:
+          IMUMeasurementFrequency: 100
+          useGPPriorFactor: true
+          gpType: 'WNOJ'  # 'WNOA'
+          useGPInterpolatedFactor: true
+
+          AutoDiffNormalFactor: true
+          AutoDiffGPInterpolatedFactor: true
+          AutoDiffGPMotionPriorFactor: true
+          GPInterpolatedFactorCalcJacobian: false
+
+          StateMeasSyncUpperBound: 0.03
+          StateMeasSyncLowerBound: -0.03
+          useConstDriftFactor: false
+
+          constDriftStd: 0.5
+          constBiasStd: .1
+          motionModelStd: 1.
+          angularRateStd: 0.01
+          magnetometerStd: 0.01
+
+          NoOptimizationWhileNoMeasurement: true
+          NoOptimizationNearZeroVelocity: true
+          VoteNearZeroVelocity: 0.2  # 20%
+
+        VehicleParameters:
+          IMURot: [1., 0., 0., 0., -1., 0., 0., 0., -1. ]   # ca
+          #IMURot: [0., 1., 0., 1., 0., 0., 0., 0., -1. ]   # hk
+          transIMUToReference: [0., 0., 0.36]   # hk
+          rotIMUToReference: [1., 0., 0., 0., 1., 0., 0., 0., 1. ]   #hk
+          #rotIMUToReference: [1., 0., 0., 0., 1., 0., 0., 0., 1. ]   #hk
+         # transIMUToReference: [ -1.06045, -0.5245, 0.8748]  #ca
+          #rotIMUToReference: [ 1., 0., 0., 0., 1., 0., 0., 0., 1. ]   #ca
+          #transIMUToGNSSAnt1: [ -5.08e-01, -4.318e-01, 5.08e-01 ] # [0.0, 0.0, 0.0]   # ca ublox
+          #transIMUToGNSSAnt1: [ 0., 0.4572, 0.3048] # [0.0, 0.0, 0.0]   # ca novatel
+          #transIMUToGNSSAnt1: [ -1.06045, -0.5245, 0.8748 ] # [0.0, 0.0, 0.0]   # ca novatel span
+          transIMUToGNSSAnt1: [0., 0., 0.36] # [0.0, 0.0, 0.0]   # hk
+          transIMUToGNSSAnt2: [ 0., 0., 0. ] # [0.0, 0.0, 0.0]
+          transIMUToLiDAR: [0., 0., -0.28]  # hk
+          #rotIMUToLiDAR: [2.67949e-08, -1., 0., 1., 2.67949e-08, 0., 0., 0., 1.]  #hk
+          #transIMUToLiDAR: [ 0., 0.,  -7.62e-02]  # ca
+          #rotIMUToLiDAR: [ 0., 1., 0., 1., 0., 0., 0., 0., -1. ]  #ca
+          rotIMUToLiDAR: [ -1., 0., 0., 0., 1., 0., 0., 0., -1. ]  #ca
+
+        Integrators: [ "NovatelIntegrator", "LIOIntegrator"]   # ["UbloxIntegrator", "CorrevitIntegrator", "GNSSTCIntegrator", "LIOIntegrator"]
+
+        Optimizer:
+          #undefined, BatchFixedLag, IncrementalFixedLag
+          smootherType: 'IncrementalFixedLag'
+          smootherLag: 3. #marginalization threshhold
+          #QcGPWNOJInterpolator: 1000.
+          #QcGPWNOJMotionPrior: 10000.
+          QcGPWNOJInterpolatorFull: [ 1000., 1000., 1000., 1000., 1000., 1000. ]
+          QcGPWNOJMotionPriorFull: [ 10000., 10000., 10000., 10000., 10000., 10000. ]
+          #QcGPWNOAInterpolator: 0.5
+          #QcGPWNOAMotionPrior: 0.5
+          QcGPWNOAInterpolatorFull: [ 0.5, 0.5, 0.5, 0.5, 0.5, 0.5 ]
+          QcGPWNOAMotionPriorFull: [ 0.5, 0.5, 0.5, 0.5, 0.5, 0.5 ]

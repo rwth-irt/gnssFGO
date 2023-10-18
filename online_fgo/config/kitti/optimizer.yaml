@@ -1,0 +1,29 @@
+---
+/deutschland/online_fgo:
+    ros__parameters:
+      Optimizer:
+        useRobustPRDR:            true
+        useRobustDDCP:            true
+        useRobustTDCP:            true
+        robustModelPRDR:          'Cauchy'   # huber
+        robustModelDDCP:          'Cauchy'   # huber
+        robustModelTDCP:          'Cauchy'   # huber
+        robustParameterPRDR:      0.5
+        robustParameterDDCP:      0.5
+        robustParameterTDCP:      0.5
+        LM:
+          lambdaFactor:           10.0
+          lambdaInitial:          0.00001
+          lambdaUpperBound:       1e20 #1e20
+          lambdaLowerBound:       0.
+          diagonalDamping:        false
+          useFixedLambdaFactor:   true
+          minDiagonal:            1e-6
+          maxDiagonal:            1e32
+        ISAM2:
+          optimizationParams:     'DOGLEG' # 'GN' or 'DOGLEG'
+          relinearizeThreshold:   0.1 #0.1
+          relinearizeSkip:        1 #10
+          factorization:          'CHOLESKY' # 'CHOLESKY' or 'QR'
+          enableDetailedResults:  false
+          findUnusedFactorSlots:  false
