@@ -35,7 +35,7 @@ The goal of this framework is to build a fundamental time-centric graph-optimiza
 
 [2] *Haoming Zhang, Zhanxin Wang and Heike Vallery*, Learning-based NLOS Detection and Uncertainty Prediction of GNSS Observations with Transformer-Enhanced LSTM Network, accepted at the IEEE ITSC2023, arxiv, DOI: [10.48550/arXiv.2309.00480](https://arxiv.org/abs/2309.00480)
 
-For more information and sample request, please contact h.zhang@irt.rwth-aaachen.de
+For more information and sample request, please contact h.zhang@irt.rwth-aachen.de
 
 
 ---
