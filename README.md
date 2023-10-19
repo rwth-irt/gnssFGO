@@ -1,6 +1,6 @@
 # gnssFGO: an online and time-centric factor graph optimization for GNSS/Multi-sensor vehicle localization
----
-### Video Demonstration:
+
+### Video Demonstration (click the figure):
 [![IMAGE ALT TEXT](http://img.youtube.com/vi/9R55uCCrNss/0.jpg)](http://www.youtube.com/watch?v=9R55uCCrNss "GNSS-FGO Video Demonstration")
 
 This is the official implementation of gnssFGO using the general framework onlineFGO based on GTSAM, in which a general time-centric factor graph optimization with continuous-time trajectory representation using Gaussian process regression for online applications is implemented. 
