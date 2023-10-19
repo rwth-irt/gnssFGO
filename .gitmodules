@@ -7,9 +7,6 @@
 [submodule "irt_nav_common"]
 	path = irt_nav_common
 	url = https://github.com/rwth-irt/irt_nav_common.git
-[submodule "novatel_oem7_driver"]
-	path = novatel_oem7_driver
-	url = https://github.com/rwth-irt/novatel_oem7_driver.git
 [submodule "ublox"]
 	path = ublox
 	url = https://github.com/rwth-irt/ublox.git
