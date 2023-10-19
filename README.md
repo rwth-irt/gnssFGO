@@ -30,10 +30,10 @@ The goal of this framework is to build a fundamental time-centric graph-optimiza
 ---
 
 ## Papers using this package
-[1] *Haoming Zhang, Chih-Chun Chen, Heike Vallery and Timothy D. Barfoot*, GNSS/Multi-Sensor Fusion Using Continuous-Time Factor Graph Optimization for Robust Localization, submitted to IEEE T-TRO, arxiv, DOI: [10.48550/arXiv.2309.11134](https://doi.org/10.48550/arXiv.2309.11134)
+[1] *Haoming Zhang, Chih-Chun Chen, Heike Vallery and Timothy D. Barfoot*, GNSS/Multi-Sensor Fusion Using Continuous-Time Factor Graph Optimization for Robust Localization, submitted to IEEE T-RO, arxiv, DOI: [10.48550/arXiv.2309.11134](https://doi.org/10.48550/arXiv.2309.11134) (cannot be viewed in chrome due to large vector graphics)
 ### Data available at: https://rwth-aachen.sciebo.de/s/OCEZPLE9wFHv1pp
 
-[2] *Haoming Zhang, Zhanxin Wang and Heike Vallery*, Learning-based NLOS Detection and Uncertainty Prediction of GNSS Observations with Transformer-Enhanced LSTM Network, accepted at the IEEE ITSC2023, arxiv, DOI: [10.48550/arXiv.2309.00480](https://arxiv.org/abs/2309.00480)
+[2] *Haoming Zhang, Zhanxin Wang and Heike Vallery*, Learning-based NLOS Detection and Uncertainty Prediction of GNSS Observations with Transformer-Enhanced LSTM Network, accepted at the IEEE ITSC2023, arxiv, DOI: [10.48550/arXiv.2309.00480](https://arxiv.org/abs/2309.00480) (cannot be viewed in chrome due to large vector graphics)
 
 For more information and sample request, please contact h.zhang@irt.rwth-aachen.de
 
