@@ -6,4 +6,15 @@
 	path = irt_nav_common
 	url = https://github.com/rwth-irt/irt_nav_common.git
 	branch = ros2
-
+[submodule "novatel_oem7_utilities"]
+	path = novatel_oem7_utilities
+	url = https://github.com/rwth-irt/novatel_oem7_driver.git
+	branch = ros2
+[submodule "LIOSAM"]
+	path = LIOSAM
+	url = https://github.com/rwth-irt/LIO-SAM.git
+	branch = ros2
+[submodule "ublox_msgs"]
+	path = ublox_msgs
+	url = https://github.com/rwth-irt/ublox.git
+	branch = ros2
