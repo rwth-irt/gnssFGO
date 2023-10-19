@@ -20,13 +20,13 @@ The goal of this framework is to build a fundamental time-centric graph-optimiza
 1. [ros2](https://docs.ros.org/en/rolling/Installation.html)
 2. [irt_nav_common](https://github.com/rwth-irt/irt_nav_common)
 3. [irt_gnss_preprocessing](https://github.com/rwth-irt/irt_gnss_preprocessing)
-5. [GTSAM](https://github.com/borglab/gtsam) 
+5. [adapted GTSAM](https://github.com/rwth-irt/gtsam.git) 
 6. [adapted LIO-SAM](https://github.com/rwth-irt/LIO-SAM)
 4. [Eigen3](https://eigen.tuxfamily.org/)
 5. [novatel_oem7_msgs](https://github.com/rwth-irt/novatel_oem7_driver)
 6. [ublox_msgs](https://github.com/rwth-irt/ublox)
 7. [ublox_serialization](https://github.com/rwth-irt/ublox)
-8. [mapviz (optional)](https://github.com/rwth-irt/mapviz.git)
+8. [adapted mapviz (optional)](https://github.com/rwth-irt/mapviz.git)
 ---
 
 ## Papers using this package
@@ -46,8 +46,12 @@ For more information and sample request, please contact h.zhang@irt.rwth-aachen.
 ```
 git clone --recursive https://github.com/rwth-irt/gnssFGO.git
 ```
-4. compile
+4. compile 
+```
+colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
+```
 
+---
 ## How to run
 1. When using the datasets, launch irt_gnss_preprocess
 
@@ -83,6 +87,7 @@ git clone --recursive https://github.com/rwth-irt/gnssFGO.git
 
 ---
 ## ToDos:
-1. Clean code base and move general utilities to irt_nav_common
-2. Fix bugs for GNSS carrier phase integration
-3. Implement visual odometry
+1. Wiki
+2. Clean code base and move general utilities to irt_nav_common
+3. Fix bugs for GNSS carrier phase integration
+4. Implement visual odometry
