@@ -661,137 +661,137 @@ namespace sensors::LiDAR::LIOSAM
           integratorParamPtr_ = integratorParamPtr;
           pubSensorReport_ = sensorReportPublisher;
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".pointCloudTopic", "points");
-          node_.get_parameter("OnlineFGO."+ integratorName +".pointCloudTopic", params_.pointCloudTopic);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".pointCloudTopic", "points");
+          node_.get_parameter("GNSSFGO."+ integratorName +".pointCloudTopic", params_.pointCloudTopic);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".lidarFrame", "laser_frame");
-          node_.get_parameter("OnlineFGO."+ integratorName +".lidarFrame", params_.lidarFrame);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".lidarFrame", "laser_frame");
+          node_.get_parameter("GNSSFGO."+ integratorName +".lidarFrame", params_.lidarFrame);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".baselinkFrame", "base_link");
-          node_.get_parameter("OnlineFGO."+ integratorName +".baselinkFrame", params_.baselinkFrame);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".baselinkFrame", "base_link");
+          node_.get_parameter("GNSSFGO."+ integratorName +".baselinkFrame", params_.baselinkFrame);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName + ".odometryFrame", "odom");
-          node_.get_parameter("OnlineFGO."+ integratorName +".odometryFrame", params_.odometryFrame);
+          node_.declare_parameter("GNSSFGO."+ integratorName + ".odometryFrame", "odom");
+          node_.get_parameter("GNSSFGO."+ integratorName +".odometryFrame", params_.odometryFrame);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".mapFrame", "map");
-          node_.get_parameter("OnlineFGO."+ integratorName +".mapFrame", params_.mapFrame);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".mapFrame", "map");
+          node_.get_parameter("GNSSFGO."+ integratorName +".mapFrame", params_.mapFrame);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".savePCD", false);
-          node_.get_parameter("OnlineFGO."+ integratorName +".savePCD", params_.savePCD);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".savePCD", false);
+          node_.get_parameter("GNSSFGO."+ integratorName +".savePCD", params_.savePCD);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".savePCDDirectory", "~/Documents/LOAM/");
-          node_.get_parameter("OnlineFGO."+ integratorName +".savePCDDirectory", params_.savePCDDirectory);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".savePCDDirectory", "~/Documents/LOAM/");
+          node_.get_parameter("GNSSFGO."+ integratorName +".savePCDDirectory", params_.savePCDDirectory);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".N_SCAN", 16);
-          node_.get_parameter("OnlineFGO."+ integratorName +".N_SCAN", params_.N_SCAN);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".N_SCAN", 16);
+          node_.get_parameter("GNSSFGO."+ integratorName +".N_SCAN", params_.N_SCAN);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".Horizon_SCAN", 1800);
-          node_.get_parameter("OnlineFGO."+ integratorName +".Horizon_SCAN", params_.Horizon_SCAN);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".Horizon_SCAN", 1800);
+          node_.get_parameter("GNSSFGO."+ integratorName +".Horizon_SCAN", params_.Horizon_SCAN);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".downsampleRate", 1);
-          node_.get_parameter("OnlineFGO."+ integratorName +".downsampleRate", params_.downsampleRate);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".downsampleRate", 1);
+          node_.get_parameter("GNSSFGO."+ integratorName +".downsampleRate", params_.downsampleRate);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".lidarMinRange", 3.);
-          node_.get_parameter("OnlineFGO."+ integratorName +".lidarMinRange", params_.lidarMinRange);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".lidarMinRange", 3.);
+          node_.get_parameter("GNSSFGO."+ integratorName +".lidarMinRange", params_.lidarMinRange);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".lidarMaxRange", 1000.0);
-          node_.get_parameter("OnlineFGO."+ integratorName +".lidarMaxRange", params_.lidarMaxRange);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".lidarMaxRange", 1000.0);
+          node_.get_parameter("GNSSFGO."+ integratorName +".lidarMaxRange", params_.lidarMaxRange);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".maxPosePriorLiDARMsgAging", 1000.0);
-          node_.get_parameter("OnlineFGO."+ integratorName +".maxPosePriorLiDARMsgAging", params_.maxPosePriorLiDARMsgAging);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".maxPosePriorLiDARMsgAging", 1000.0);
+          node_.get_parameter("GNSSFGO."+ integratorName +".maxPosePriorLiDARMsgAging", params_.maxPosePriorLiDARMsgAging);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".edgeFeatureMinValidNum", 10);
-          node_.get_parameter("OnlineFGO."+ integratorName +".edgeFeatureMinValidNum", params_.edgeFeatureMinValidNum);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".edgeFeatureMinValidNum", 10);
+          node_.get_parameter("GNSSFGO."+ integratorName +".edgeFeatureMinValidNum", params_.edgeFeatureMinValidNum);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".surfFeatureMinValidNum", 100);
-          node_.get_parameter("OnlineFGO."+ integratorName +".surfFeatureMinValidNum", params_.surfFeatureMinValidNum);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".surfFeatureMinValidNum", 100);
+          node_.get_parameter("GNSSFGO."+ integratorName +".surfFeatureMinValidNum", params_.surfFeatureMinValidNum);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".numberOfCores", 8);
-          node_.get_parameter("OnlineFGO."+ integratorName +".numberOfCores", params_.numberOfCores);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".numberOfCores", 8);
+          node_.get_parameter("GNSSFGO."+ integratorName +".numberOfCores", params_.numberOfCores);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".mappingProcessInterval", 0.15);
-          node_.get_parameter("OnlineFGO."+ integratorName +".mappingProcessInterval", params_.mappingProcessInterval);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".mappingProcessInterval", 0.15);
+          node_.get_parameter("GNSSFGO."+ integratorName +".mappingProcessInterval", params_.mappingProcessInterval);
           RCLCPP_INFO_STREAM(node_.get_logger(), "LIOSAM PARAM mappingProcessInterval: " << params_.mappingProcessInterval);
 
           double varRotX = 0.05, varRotY = 0.05, varRotZ = 0.05, varTransX = 0.01, varTransY = 0.09, varTransZ = 0.16;
-          node_.declare_parameter("OnlineFGO."+ integratorName +".varianceRoll", 0.05);
-          node_.get_parameter("OnlineFGO."+ integratorName +".varianceRoll", varRotX);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".varianceRoll", 0.05);
+          node_.get_parameter("GNSSFGO."+ integratorName +".varianceRoll", varRotX);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".variancePitch", 0.05);
-          node_.get_parameter("OnlineFGO."+ integratorName +".variancePitch", varRotY);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".variancePitch", 0.05);
+          node_.get_parameter("GNSSFGO."+ integratorName +".variancePitch", varRotY);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".varianceYaw", 0.05);
-          node_.get_parameter("OnlineFGO."+ integratorName +".varianceYaw", varRotZ);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".varianceYaw", 0.05);
+          node_.get_parameter("GNSSFGO."+ integratorName +".varianceYaw", varRotZ);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".varianceX", 0.05);
-          node_.get_parameter("OnlineFGO."+ integratorName +".varianceX", varTransX);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".varianceX", 0.05);
+          node_.get_parameter("GNSSFGO."+ integratorName +".varianceX", varTransX);
 
-          node_.declare_parameter("OnlineFGO.\"+ integratorName +\".varianceY", 0.05);
-          node_.get_parameter("OnlineFGO."+ integratorName +".varianceY", varTransY);
+          node_.declare_parameter("GNSSFGO.\"+ integratorName +\".varianceY", 0.05);
+          node_.get_parameter("GNSSFGO."+ integratorName +".varianceY", varTransY);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".varianceZ", 0.05);
-          node_.get_parameter("OnlineFGO."+ integratorName +".varianceZ", varTransZ);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".varianceZ", 0.05);
+          node_.get_parameter("GNSSFGO."+ integratorName +".varianceZ", varTransZ);
 
           params_.LiDAROdomVariance = (gtsam::Vector6() << varRotX, varRotY, varRotZ, varTransX, varTransY, varTransZ).finished();
 
           RCLCPP_INFO_STREAM(node_.get_logger(), "LIOSAM PARAM odom var: \n" << params_.LiDAROdomVariance);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".surroundingKeyframeSearchRadius", 50.0);
-          node_.get_parameter("OnlineFGO."+ integratorName +".surroundingKeyframeSearchRadius", params_.surroundingKeyframeSearchRadius);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".surroundingKeyframeSearchRadius", 50.0);
+          node_.get_parameter("GNSSFGO."+ integratorName +".surroundingKeyframeSearchRadius", params_.surroundingKeyframeSearchRadius);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".loopClosureEnableFlag", true);
-          node_.get_parameter("OnlineFGO."+ integratorName +".loopClosureEnableFlag", params_.loopClosureEnableFlag);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".loopClosureEnableFlag", true);
+          node_.get_parameter("GNSSFGO."+ integratorName +".loopClosureEnableFlag", params_.loopClosureEnableFlag);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".loopClosureFrequency", 1.0);
-          node_.get_parameter("OnlineFGO."+ integratorName +".loopClosureFrequency", params_.loopClosureFrequency);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".loopClosureFrequency", 1.0);
+          node_.get_parameter("GNSSFGO."+ integratorName +".loopClosureFrequency", params_.loopClosureFrequency);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".surroundingKeyframeSize", 50); // 50
-          node_.get_parameter("OnlineFGO."+ integratorName +".surroundingKeyframeSize", params_.surroundingKeyframeSize);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".surroundingKeyframeSize", 50); // 50
+          node_.get_parameter("GNSSFGO."+ integratorName +".surroundingKeyframeSize", params_.surroundingKeyframeSize);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".historyKeyframeSearchRadius", 15.0); // 15.
-          node_.get_parameter("OnlineFGO."+ integratorName +".historyKeyframeSearchRadius", params_.historyKeyframeSearchRadius);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".historyKeyframeSearchRadius", 15.0); // 15.
+          node_.get_parameter("GNSSFGO."+ integratorName +".historyKeyframeSearchRadius", params_.historyKeyframeSearchRadius);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".historyKeyframeSearchTimeDiff", 30.0);
-          node_.get_parameter("OnlineFGO."+ integratorName +".historyKeyframeSearchTimeDiff", params_.historyKeyframeSearchTimeDiff);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".historyKeyframeSearchTimeDiff", 30.0);
+          node_.get_parameter("GNSSFGO."+ integratorName +".historyKeyframeSearchTimeDiff", params_.historyKeyframeSearchTimeDiff);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".historyKeyframeSearchNum", 30); // 30
-          node_.get_parameter("OnlineFGO."+ integratorName +".historyKeyframeSearchNum", params_.historyKeyframeSearchNum);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".historyKeyframeSearchNum", 30); // 30
+          node_.get_parameter("GNSSFGO."+ integratorName +".historyKeyframeSearchNum", params_.historyKeyframeSearchNum);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".historyKeyframeFitnessScore", 0.3); // 0.3
-          node_.get_parameter("OnlineFGO."+ integratorName +".historyKeyframeFitnessScore", params_.historyKeyframeFitnessScore);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".historyKeyframeFitnessScore", 0.3); // 0.3
+          node_.get_parameter("GNSSFGO."+ integratorName +".historyKeyframeFitnessScore", params_.historyKeyframeFitnessScore);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".globalMapVisualizationSearchRadius", 1000.0);
-          node_.get_parameter("OnlineFGO."+ integratorName +".globalMapVisualizationSearchRadius", params_.globalMapVisualizationSearchRadius);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".globalMapVisualizationSearchRadius", 1000.0);
+          node_.get_parameter("GNSSFGO."+ integratorName +".globalMapVisualizationSearchRadius", params_.globalMapVisualizationSearchRadius);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".globalMapVisualizationPoseDensity", 10.0);
-          node_.get_parameter("OnlineFGO."+ integratorName +".globalMapVisualizationPoseDensity", params_.globalMapVisualizationPoseDensity);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".globalMapVisualizationPoseDensity", 10.0);
+          node_.get_parameter("GNSSFGO."+ integratorName +".globalMapVisualizationPoseDensity", params_.globalMapVisualizationPoseDensity);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".globalMapVisualizationLeafSize", 1.0);
-          node_.get_parameter("OnlineFGO."+ integratorName +".globalMapVisualizationLeafSize", params_.globalMapVisualizationLeafSize);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".globalMapVisualizationLeafSize", 1.0);
+          node_.get_parameter("GNSSFGO."+ integratorName +".globalMapVisualizationLeafSize", params_.globalMapVisualizationLeafSize);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".imuRPYWeight", 0.01);
-          node_.get_parameter("OnlineFGO."+ integratorName +".imuRPYWeight", params_.imuRPYWeight);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".imuRPYWeight", 0.01);
+          node_.get_parameter("GNSSFGO."+ integratorName +".imuRPYWeight", params_.imuRPYWeight);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".z_tollerance", 1000.0);
-          node_.get_parameter("OnlineFGO."+ integratorName +".z_tollerance", params_.z_tollerance);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".z_tollerance", 1000.0);
+          node_.get_parameter("GNSSFGO."+ integratorName +".z_tollerance", params_.z_tollerance);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".rotation_tollerance", 1000.0);
-          node_.get_parameter("OnlineFGO."+ integratorName +".rotation_tollerance", params_.rotation_tollerance);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".rotation_tollerance", 1000.0);
+          node_.get_parameter("GNSSFGO."+ integratorName +".rotation_tollerance", params_.rotation_tollerance);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".mappingCornerLeafSize", 0.2);
-          node_.get_parameter("OnlineFGO."+ integratorName +".mappingCornerLeafSize", params_.mappingCornerLeafSize);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".mappingCornerLeafSize", 0.2);
+          node_.get_parameter("GNSSFGO."+ integratorName +".mappingCornerLeafSize", params_.mappingCornerLeafSize);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".mappingSurfLeafSize", 0.4);
-          node_.get_parameter("OnlineFGO."+ integratorName +".mappingSurfLeafSize", params_.mappingSurfLeafSize);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".mappingSurfLeafSize", 0.4);
+          node_.get_parameter("GNSSFGO."+ integratorName +".mappingSurfLeafSize", params_.mappingSurfLeafSize);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".surroundingkeyframeAddingDistThreshold", 0.2);
-          node_.get_parameter("OnlineFGO."+ integratorName +".surroundingkeyframeAddingDistThreshold", params_.surroundingkeyframeAddingDistThreshold);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".surroundingkeyframeAddingDistThreshold", 0.2);
+          node_.get_parameter("GNSSFGO."+ integratorName +".surroundingkeyframeAddingDistThreshold", params_.surroundingkeyframeAddingDistThreshold);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".surroundingkeyframeAddingAngleThreshold", 0.2);
-          node_.get_parameter("OnlineFGO."+ integratorName +".surroundingkeyframeAddingAngleThreshold", params_.surroundingkeyframeAddingAngleThreshold);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".surroundingkeyframeAddingAngleThreshold", 0.2);
+          node_.get_parameter("GNSSFGO."+ integratorName +".surroundingkeyframeAddingAngleThreshold", params_.surroundingkeyframeAddingAngleThreshold);
 
-          node_.declare_parameter("OnlineFGO."+ integratorName +".surroundingKeyframeDensity", 2.0);
-          node_.get_parameter("OnlineFGO."+ integratorName +".surroundingKeyframeDensity", params_.surroundingKeyframeDensity);
+          node_.declare_parameter("GNSSFGO."+ integratorName +".surroundingKeyframeDensity", 2.0);
+          node_.get_parameter("GNSSFGO."+ integratorName +".surroundingKeyframeDensity", params_.surroundingKeyframeDensity);
 
 
           params_.RotIMUtoLiDAR = integratorParamPtr_->rotIMUtoLiDAR;
@@ -802,38 +802,38 @@ namespace sensors::LiDAR::LIOSAM
           std::cout << "[LIO:] trans lbIMUtoLiDAR: " << params_.lbIMUtoLiDAR << std::endl;
           std::cout << "[LIO:] trans lbLiDARtoIMU: " << params_.lbLiDARtoIMU << std::endl;
 
-          node_.declare_parameter("OnlineFGO.\"+ integratorName +\".maxNumCachedMap", 1000000);
-          node_.get_parameter("OnlineFGO.\"+ integratorName +\".maxNumCachedMap", params_.maxNumCachedMap);
+          node_.declare_parameter("GNSSFGO.\"+ integratorName +\".maxNumCachedMap", 1000000);
+          node_.get_parameter("GNSSFGO.\"+ integratorName +\".maxNumCachedMap", params_.maxNumCachedMap);
 
-          node_.declare_parameter("OnlineFGO.\"+ integratorName +\".maxPointAge", 10.);
-          node_.get_parameter("OnlineFGO.\"+ integratorName +\".maxPointAge", params_.maxPointAge);
+          node_.declare_parameter("GNSSFGO.\"+ integratorName +\".maxPointAge", 10.);
+          node_.get_parameter("GNSSFGO.\"+ integratorName +\".maxPointAge", params_.maxPointAge);
 
-          node_.declare_parameter("OnlineFGO.\"+ integratorName +\".scan2MapOptIteration", 30);
-          node_.get_parameter("OnlineFGO.\"+ integratorName +\".scan2MapOptIteration", params_.scan2MapOptIteration);
+          node_.declare_parameter("GNSSFGO.\"+ integratorName +\".scan2MapOptIteration", 30);
+          node_.get_parameter("GNSSFGO.\"+ integratorName +\".scan2MapOptIteration", params_.scan2MapOptIteration);
 
-          node_.declare_parameter("OnlineFGO.\"+ integratorName +\".minSizeCurrentKeyframeCloud", 300);
-          node_.get_parameter("OnlineFGO.\"+ integratorName +\".minSizeCurrentKeyframeCloud", params_.minSizeCurrentKeyframeCloud);
+          node_.declare_parameter("GNSSFGO.\"+ integratorName +\".minSizeCurrentKeyframeCloud", 300);
+          node_.get_parameter("GNSSFGO.\"+ integratorName +\".minSizeCurrentKeyframeCloud", params_.minSizeCurrentKeyframeCloud);
 
-          node_.declare_parameter("OnlineFGO.\"+ integratorName +\".minSizePreviousKeyframeCloud", 1000);
-          node_.get_parameter("OnlineFGO.\"+ integratorName +\".minSizePreviousKeyframeCloud", params_.minSizePreviousKeyframeCloud);
+          node_.declare_parameter("GNSSFGO.\"+ integratorName +\".minSizePreviousKeyframeCloud", 1000);
+          node_.get_parameter("GNSSFGO.\"+ integratorName +\".minSizePreviousKeyframeCloud", params_.minSizePreviousKeyframeCloud);
 
-          node_.declare_parameter("OnlineFGO.\"+ integratorName +\".icpMaxIterations", 100);
-          node_.get_parameter("OnlineFGO.\"+ integratorName +\".icpMaxIterations", params_.icpMaxIterations);
+          node_.declare_parameter("GNSSFGO.\"+ integratorName +\".icpMaxIterations", 100);
+          node_.get_parameter("GNSSFGO.\"+ integratorName +\".icpMaxIterations", params_.icpMaxIterations);
 
-          node_.declare_parameter("OnlineFGO.\"+ integratorName +\".icpTransformEpsilon", 1e-6);
-          node_.get_parameter("OnlineFGO.\"+ integratorName +\".icpTransformEpsilon", params_.icpTransformEpsilon);
+          node_.declare_parameter("GNSSFGO.\"+ integratorName +\".icpTransformEpsilon", 1e-6);
+          node_.get_parameter("GNSSFGO.\"+ integratorName +\".icpTransformEpsilon", params_.icpTransformEpsilon);
 
-          node_.declare_parameter("OnlineFGO.\"+ integratorName +\".icpEuclideanFitnessEpsilon", 1e-6);
-          node_.get_parameter("OnlineFGO.\"+ integratorName +\".icpEuclideanFitnessEpsilon", params_.icpEuclideanFitnessEpsilon);
+          node_.declare_parameter("GNSSFGO.\"+ integratorName +\".icpEuclideanFitnessEpsilon", 1e-6);
+          node_.get_parameter("GNSSFGO.\"+ integratorName +\".icpEuclideanFitnessEpsilon", params_.icpEuclideanFitnessEpsilon);
 
-          node_.declare_parameter("OnlineFGO.\"+ integratorName +\".icpRANSACIterations", 0);
-          node_.get_parameter("OnlineFGO.\"+ integratorName +\".icpRANSACIterations", params_.icpRANSACIterations);
+          node_.declare_parameter("GNSSFGO.\"+ integratorName +\".icpRANSACIterations", 0);
+          node_.get_parameter("GNSSFGO.\"+ integratorName +\".icpRANSACIterations", params_.icpRANSACIterations);
 
-          node_.declare_parameter("OnlineFGO.\"+ integratorName +\".freqLoopDetectionInSec", 5);
-          node_.get_parameter("OnlineFGO.\"+ integratorName +\".freqLoopDetectionInSec", params_.freqLoopDetectionInSec);
+          node_.declare_parameter("GNSSFGO.\"+ integratorName +\".freqLoopDetectionInSec", 5);
+          node_.get_parameter("GNSSFGO.\"+ integratorName +\".freqLoopDetectionInSec", params_.freqLoopDetectionInSec);
 
-          node_.declare_parameter("OnlineFGO.\"+ integratorName +\".freqVisualizationInSec", 5);
-          node_.get_parameter("OnlineFGO.\"+ integratorName +\".freqVisualizationInSec", params_.freqVisualizationInSec);
+          node_.declare_parameter("GNSSFGO.\"+ integratorName +\".freqVisualizationInSec", 5);
+          node_.get_parameter("GNSSFGO.\"+ integratorName +\".freqVisualizationInSec", params_.freqVisualizationInSec);
 
           pubLaserCloudSurround_ = node_.create_publisher<sensor_msgs::msg::PointCloud2>("/gnss_fgo/mapping/map_global", 1);
           pubKeyPoses_ = node_.create_publisher<sensor_msgs::msg::PointCloud2>("/gnss_fgo/mapping/trajectory", 1);

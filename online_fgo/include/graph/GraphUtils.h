@@ -41,7 +41,10 @@ namespace fgo::graph
                                           // true, ... true, true, false(HERE), false, ... false
                                           return pair.first.seconds() <= timestamp;
                                       });
-      return (itAfter - 1)->second;
+      if(itAfter == timeStatePairs.begin())
+          return itAfter->second;
+      else
+        return (itAfter - 1)->second;
     }
 
     /***

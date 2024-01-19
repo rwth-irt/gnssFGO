@@ -41,7 +41,7 @@ namespace fgo::graph
       referenceSensorTimestampBuffer_.resize_buffer(50);
       referenceStateBuffer_.resize_buffer(50);
       fgoOptStateBuffer_.resize_buffer(50);
-      accBuffer_.resize_buffer(10000);
+      accBuffer_.resize_buffer(20000);
       currentPredictedBuffer_.resize_buffer(50);
 
       RosParameter<bool> publishResiduals("GNSSFGO.Graph.publishResiduals", true, node);

@@ -167,6 +167,8 @@ namespace fgo::integrator
       RCLCPP_INFO_STREAM(rosNodePtr_->get_logger(), "varScaleHeadingSingle: " << varScaleHeadingSingle.value());
       paramPtr_->varScaleHeadingSingle = varScaleHeadingSingle.value();
 
+        RCLCPP_INFO_STREAM(rosNodePtr_->get_logger(), "bound: " << paramPtr_->StateMeasSyncLowerBound);
+
 
       if(PVTSource.value() == "oem7")
       {
@@ -326,7 +328,7 @@ namespace fgo::integrator
 
       static gtsam::Key pose_key_j, vel_key_j, omega_key_j, bias_key_j,
                         pose_key_i, vel_key_i, omega_key_i, bias_key_i,
-                        pose_key_sync, vel_key_sync, bias_key_sync;
+                        pose_key_sync, vel_key_sync, bias_key_sync, omega_key_sync;
 
       static boost::circular_buffer<fgo::data_types::PVASolution> restGNSSMeas(100);
 
@@ -343,7 +345,7 @@ namespace fgo::integrator
       auto pvaIter = dataSensor.begin();
       while(pvaIter != dataSensor.end())
       {
-        auto corrected_time = pvaIter->timestamp.seconds() - pvaIter->delay;
+        const auto corrected_time = pvaIter->timestamp.seconds() - pvaIter->delay;
         auto posVarScale = paramPtr_->posVarScale;
         auto velVarScale = paramPtr_->velVarScale;
         auto rotVarScale = paramPtr_->headingVarScale;
@@ -385,16 +387,17 @@ namespace fgo::integrator
               break;
           }
         }
+        else
+            RCLCPP_ERROR_STREAM(rosNodePtr_->get_logger(), integratorName_ + ": PVA in RTK-fixed mode");
 
-        auto integrateVelocity = paramPtr_->integrateVelocity && pvaIter->has_velocity;
-        auto integrateAttitude = paramPtr_->integrateAttitude && pvaIter->has_heading;
+        const auto integrateVelocity = paramPtr_->integrateVelocity && pvaIter->has_velocity;
+        const auto integrateAttitude = paramPtr_->integrateAttitude && pvaIter->has_heading;
 
         RCLCPP_WARN_STREAM(rosNodePtr_->get_logger(), std::fixed << integratorName_ + ": Current PVA ts: " << corrected_time << " integrateVelocity: " << integrateVelocity << " integrateAttitude: " << integrateAttitude);
 
         //std::cout << "current pos var: " << pvaIter->xyz_var * posVarScale << std::endl;
         //std::cout << "current pos var: " << pvaIter->vel_var * velVarScale << std::endl;
         //std::cout << "ecef: " << pvaIter->xyz_ecef << std::endl;
-        //std::cout << "vel_n: " << pvaIter->vel_n << std::endl;
 
         auto syncResult = findStateForMeasurement(currentKeyIndexTimestampMap, corrected_time, paramPtr_);
         const auto current_pred_state = timePredStates.back().second; //graph::querryCurrentPredictedState(timePredStates, corrected_time);
@@ -404,31 +407,42 @@ namespace fgo::integrator
                                                                                              << syncResult.keyIndexJ << " : " << gtsam::symbolIndex(syncResult.keyIndexJ) << " at: " << syncResult.timestampJ
                                                                         << " DurationToI: " << syncResult.durationFromStateI);
 
+        if (syncResult.durationFromStateI > 1.)
+        {
+            RCLCPP_ERROR_STREAM(rosNodePtr_->get_logger(), integratorName_ + ": DIRTY fix, jump measurement falling between zero-velocity trick");
+            return true;
+        }
+
         if (syncResult.stateJExist()) {
           pose_key_i  = X(syncResult.keyIndexI);
           vel_key_i   = V(syncResult.keyIndexI);
           omega_key_i = W(syncResult.keyIndexI);
-          bias_key_i = B(syncResult.keyIndexI);
 
           pose_key_j  = X(syncResult.keyIndexJ);
           vel_key_j   = V(syncResult.keyIndexJ);
           omega_key_j = W(syncResult.keyIndexJ);
-          bias_key_j = B(syncResult.keyIndexJ);
           // RCLCPP_ERROR_STREAM(appPtr_->get_logger(), "accI.head(3): " << accI.head(3) << "\n" << accI.tail(3));
         } else {
           RCLCPP_ERROR_STREAM(rosNodePtr_->get_logger(), integratorName_ + ": GP PVT: NO state J found !!! ");
         }
 
+        gtsam::Vector3 thisVelocity;
+
+        if (paramPtr_->velocityFrame == fgo::factor::MeasurementFrame::ECEF)
+            thisVelocity = pvaIter->vel_ecef;
+        else if (paramPtr_->velocityFrame == fgo::factor::MeasurementFrame::NED || paramPtr_->velocityFrame == fgo::factor::MeasurementFrame::ENU)
+            thisVelocity = pvaIter->vel_n;
+
         if (syncResult.status == StateMeasSyncStatus::SYNCHRONIZED_I || syncResult.status == StateMeasSyncStatus::SYNCHRONIZED_J)
         {
-          const auto [foundGyro, this_gyro] = findOmegaToMeasurement(corrected_time, timestampGyroMap);
+          //auto [foundGyro, this_gyro] = findOmegaToMeasurement(corrected_time, timestampGyroMap);
           //this_gyro = current_pred_state.imuBias.correctGyroscope(this_gyro);
 
           // now we found a state which is synchronized with the GNSS obs
           if (syncResult.status == StateMeasSyncStatus::SYNCHRONIZED_I) {
             pose_key_sync = pose_key_i;
             vel_key_sync = vel_key_i;
-            bias_key_sync = bias_key_i;
+              omega_key_sync = omega_key_i;
             RCLCPP_WARN_STREAM(rosNodePtr_->get_logger(),
                                integratorName_ + ": Found time synchronized state at I " << gtsam::symbolIndex(pose_key_sync)
                                                                                <<
@@ -438,33 +452,31 @@ namespace fgo::integrator
           else {
             pose_key_sync = pose_key_j;
             vel_key_sync = vel_key_j;
-            bias_key_sync = bias_key_j;
+              omega_key_sync = omega_key_j;
             RCLCPP_WARN_STREAM(rosNodePtr_->get_logger(),
                                integratorName_ + ": Found time synchronized state at J " << gtsam::symbolIndex(pose_key_sync)
                                                                                <<
                                                                                " with time difference: "
                                                                                << syncResult.durationFromStateI);
           }
-          //RCLCPP_INFO_STREAM(appPtr_->get_logger(), "vel measured: " << pvaIter->vel_n);
-          //const auto currentVelNED = gtsam::Rot3(fgo::utils::nedRe_Matrix(current_pred_state.state.position())).rotate(current_pred_state.state.velocity());
-         // RCLCPP_INFO_STREAM(appPtr_->get_logger(), "vel current: " << currentVelNED);
+
 
           if(integrateVelocity)
           {
-            //RCLCPP_INFO_STREAM(appPtr_->get_logger(), "Integrating PVT ...");
+            RCLCPP_INFO_STREAM(rosNodePtr_->get_logger(), "Integrating PVT ...");
 
-            this->addGNSSPVTFactor(pose_key_sync, vel_key_sync, bias_key_sync, pvaIter->xyz_ecef, pvaIter->vel_ecef,
-                                   pvaIter->xyz_var * posVarScale, pvaIter->vel_var * velVarScale, this_gyro, paramPtr_->transIMUToAnt1);
+            this->addGNSSPVTFactor(pose_key_sync, vel_key_sync, omega_key_sync, pvaIter->xyz_ecef, thisVelocity,
+                                   pvaIter->xyz_var * posVarScale, pvaIter->vel_var * velVarScale, paramPtr_->transIMUToAnt1);
           }
           else
           {
-            //RCLCPP_INFO_STREAM(appPtr_->get_logger(), "Integrating GNSS positioning ...");
+            RCLCPP_INFO_STREAM(rosNodePtr_->get_logger(), "Integrating GNSS positioning ...");
             this->addGNSSFactor(pose_key_sync, pvaIter->xyz_ecef, pvaIter->xyz_var * posVarScale, paramPtr_->transIMUToAnt1);
           }
 
           if(integrateAttitude && pvaIter->has_heading)
           {
-            //RCLCPP_INFO_STREAM(appPtr_->get_logger(), "Integrating GNSS Attitude ...");
+            RCLCPP_INFO_STREAM(rosNodePtr_->get_logger(), "Integrating GNSS Attitude ...");
             this->addNavAttitudeFactor(pose_key_sync, pvaIter->rot, pvaIter->rot_var * rotVarScale, paramPtr_->attitudeType);
           }
         }
@@ -476,9 +488,7 @@ namespace fgo::integrator
                                                                           << syncResult.durationFromStateI);
           const double delta_t = syncResult.timestampJ - syncResult.timestampI;
           const double taui = syncResult.durationFromStateI;
-          //recalculate interpolator // set up interpolator
-          //corrected_time_gnss_meas - timestampI;
-          //RCLCPP_INFO_STREAM(appPtr_->get_logger(), integratorName_ + ": GP delta: " << delta_t << " tau: " << taui);
+
           //ALSO NEEDED FOR DDCP TDCP, AND THATS IN SYNCED CASE AND IN NOT SYNCED CASE
 
           if(paramPtr_->gpType == fgo::data_types::GPModelType::WNOJ) {
@@ -490,10 +500,10 @@ namespace fgo::integrator
 
           if(integrateVelocity)
           {
-            //RCLCPP_INFO_STREAM(appPtr_->get_logger(), "Integrating GP interpolated PVT ...");
+             RCLCPP_INFO_STREAM(rosNodePtr_->get_logger(), "Integrating GP interpolated PVT ...");
               this->addGPInterpolatedGNSSPVTFactor(pose_key_i, vel_key_i, omega_key_i,
                                                    pose_key_j, vel_key_j, omega_key_j,
-                                                   pvaIter->xyz_ecef, pvaIter->vel_ecef,
+                                                   pvaIter->xyz_ecef, thisVelocity,
                                                    pvaIter->xyz_var * posVarScale, pvaIter->vel_var * velVarScale,
                                                    paramPtr_->transIMUToAnt1, interpolator_);
           }

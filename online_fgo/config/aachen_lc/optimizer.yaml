@@ -22,8 +22,8 @@
           maxDiagonal:            1e32
         ISAM2:
           optimizationParams:     'GN' # 'GN' or 'DOGLEG'
-          relinearizeThreshold:   0.01 #0.1
-          relinearizeSkip:        1 #10
+          relinearizeThreshold:   0.1 #0.1
+          relinearizeSkip:        10 #10
           factorization:          'CHOLESKY' # 'CHOLESKY' or 'QR'
           enableDetailedResults:  false
-          findUnusedFactorSlots:  false
+          findUnusedFactorSlots:  true

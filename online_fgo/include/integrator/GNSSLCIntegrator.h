@@ -51,6 +51,8 @@
 #include "utils/GNSSUtils.h"
 #include "CalculateMeasurementDelay_ert_rtw/CalculateMeasurementDelay.h"
 
+#include "third_party/matlab_utils.h"
+
 namespace fgo::integrator
 {
     using namespace ::utils;
@@ -157,22 +159,23 @@ namespace fgo::integrator
         {
           const auto noiseModel = graph::assignNoiseModel(paramPtr_->noiseModelPosition,
                                                           posVar, paramPtr_->robustParamPosition, "GPInterpolatedGPS");
+          noiseModel->print("pvt noise");
 
             graphPtr_->emplace_shared<fgo::factor::GPInterpolatedGPSFactor>(poseKeyI, velKeyI, omegaKeyI, poseKeyJ, velKeyJ, omegaKeyJ, posMeasured,
-                                                                            lb, noiseModel, interpolator, paramPtr_->AutoDiffGPInterpolatedFactor);
+                                                                            lb, noiseModel, interpolator, false);
         }
 
-        void addGNSSPVTFactor(const gtsam::Key& poseKey, const gtsam::Key& velKey, const gtsam::Key& biasKey,
+        void addGNSSPVTFactor(const gtsam::Key& poseKey, const gtsam::Key& velKey, const gtsam::Key& omegaKey,
                               const gtsam::Point3& posMeasured, const gtsam::Vector3& velMeasured,
-                              const gtsam::Vector3& posVar, const gtsam::Vector3& velVar, const gtsam::Vector3& omega, const gtsam::Vector3 &lb)
+                              const gtsam::Vector3& posVar, const gtsam::Vector3& velVar, const gtsam::Vector3 &lb)
         {
           const auto noiseModel = graph::assignNoiseModel(paramPtr_->noiseModelPosition,
                                                           (gtsam::Vector6() << posVar, velVar).finished(),
                                                           paramPtr_->robustParamPosition);
-          graphPtr_->emplace_shared<fgo::factor::PVTFactor>(poseKey, velKey, biasKey,
+            noiseModel->print("pvt noise");
+          graphPtr_->emplace_shared<fgo::factor::PVTFactor>(poseKey, velKey, omegaKey,
                                                             posMeasured, velMeasured,
-                                                            lb, omega,
-                                                            paramPtr_->velocityFrame, noiseModel, paramPtr_->AutoDiffNormalFactor);
+                                                            lb, paramPtr_->velocityFrame, noiseModel, false);
         }
 
         void addGPInterpolatedGNSSPVTFactor(const gtsam::Key& poseKeyI, const gtsam::Key& velKeyI, const gtsam::Key& omegaKeyI,
@@ -444,6 +447,9 @@ namespace fgo::integrator
           sol.xyz_var = (gtsam::Vector3() << pva->latitude_stdev, pva->longitude_stdev, pva->height_stdev).finished();
           sol.vel_n = (gtsam::Vector3() << pva->north_velocity, pva->east_velocity, -pva->up_velocity).finished();
           //sol.vel_var = (gtsam::Vector3() << pva->north_velocity_stdev, pva->east_velocity_stdev, -pva->up_velocity_stdev).finished();
+
+
+
           const auto eRned = gtsam::Rot3(fgo::utils::nedRe_Matrix(sol.xyz_ecef)).inverse();
           sol.vel_ecef = eRned.rotate(sol.vel_n);
           sol.rot = gtsam::Rot3::Yaw(pva->azimuth * fgo::constants::deg2rad);
@@ -580,7 +586,8 @@ namespace fgo::integrator
 
           static size_t calcZeroVelocityCounter = 1;
           static gtsam::Vector3 sumVelocity = gtsam::Z_3x1;
-          rclcpp::Time msg_timestamp = rclcpp::Time(rosNodePtr_->now(), RCL_ROS_TIME);
+          const auto now = rosNodePtr_->now();
+          rclcpp::Time msg_timestamp = rclcpp::Time(now.nanoseconds(), RCL_ROS_TIME);
           RCLCPP_INFO_STREAM(rosNodePtr_->get_logger(), "on ubloxPVT at " << std::fixed << msg_timestamp.seconds());
           fgo::data_types::PVASolution sol{};
           sol.timestamp = msg_timestamp;
@@ -591,12 +598,13 @@ namespace fgo::integrator
               navpvt->lon * 1e-7 * fgo::constants::deg2rad,
               navpvt->height * 1e-3).finished();
           sol.xyz_ecef = fgo::utils::llh2xyz(sol.llh);
-          sol.xyz_var = (gtsam::Vector3() << std::pow(navpvt->h_acc * 1e-3, 2), std::pow(navpvt->h_acc * 1e-3, 2), std::pow(navpvt->v_acc * 1e-3, 2)).finished();
+          sol.xyz_var = (gtsam::Vector3() << std::pow(navpvt->h_acc * 1e-3, 2), std::pow(navpvt->h_acc * 1e-3, 2), std::pow(navpvt->v_acc * 1e-3, 2) * 2).finished();
           sol.vel_n = (gtsam::Vector3() << navpvt->vel_n * 1e-3, navpvt->vel_e * 1e-3, navpvt->vel_d * 1e-3).finished();
-          const auto ecef_R_ned = gtsam::Rot3(fgo::utils::nedRe_Matrix(sol.xyz_ecef)).inverse();
-
+          const auto ned_R_e= gtsam::Rot3(fgo::utils::nedRe_Matrix(sol.xyz_ecef));
+          const auto ecef_R_ned = ned_R_e.inverse();
           sumVelocity += sol.vel_n;
           //sol.xyz_var = ecef_R_ned.rotate(sol.xyz_var);
+          gtsam::Matrix H1, H2;
           sol.vel_ecef = ecef_R_ned.rotate(sol.vel_n);
           const auto velVar = std::pow(navpvt->s_acc * 1e-3, 2);
           sol.vel_var = (gtsam::Vector3() << velVar, velVar, velVar).finished();
@@ -607,7 +615,8 @@ namespace fgo::integrator
           else
             sol.heading = heading * fgo::constants::deg2rad;
           sol.rot = gtsam::Rot3::Yaw(sol.heading);
-          sol.heading_ecef = ecef_R_ned.compose(sol.rot).yaw();
+          sol.rot_ecef = ecef_R_ned.compose(sol.rot);
+          sol.heading_ecef = sol.rot_ecef.yaw();
           sol.heading_var = std::pow(navpvt->head_acc * 1e-5 * fgo::constants::deg2rad, 2);
           sol.rot_var = (gtsam::Vector3() << 0, 0., sol.heading_var).finished();
           sol.type = fgo::utils::GNSS::getUbloxSolutionType(navpvt->fix_type, navpvt->flags);

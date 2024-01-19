@@ -37,6 +37,8 @@
 
 #include "utils/Constants.h"
 
+#include "third_party/func_ECEF2LLH/func_ECEF2LLH.h"
+
 #define P_T                50  /* T */
 #define P_A                30  /* A */
 #define P_a                30  /* a */
@@ -61,6 +63,14 @@ namespace fgo::utils {
     ////
     //// REF :: Groves, Paul. Principles of GNSS, Inertial, and Multisensor Integrated
     ////        Navigation Systems. Artech House, 2008
+
+    inline gtsam::Point3 xyz2llh_interative(const gtsam::Point3& xyz)
+    {
+        double phi, lambda, h;
+        func_ECEF2LLH(xyz.x(), xyz.y(), xyz.z(), &phi, &lambda, &h);
+        gtsam::Point3 llh(phi * deg2rad, lambda * deg2rad, h);
+        return llh;
+    }
 
     inline gtsam::Point3 xyz2llh(const gtsam::Point3 &p1)
     {

@@ -37,9 +37,9 @@ namespace fgo::graph
     StatusGraphConstruction GraphTimeCentric::constructFactorGraphOnIMU(std::vector<fgo::data_types::IMUMeasurement> &dataIMU)
     {
       // example: imu on 100Hz and we optimize on 10 Hz, then we should count 10 imu measurements
-      static uint notifyCounter = graphBaseParamPtr_->IMUMeasurementFrequency / graphBaseParamPtr_->optFrequency;
-      static boost::circular_buffer<std::pair<double, gtsam::Vector3>> timeGyroMap(20 * graphBaseParamPtr_->IMUMeasurementFrequency / graphBaseParamPtr_->optFrequency);
-      static boost::circular_buffer<std::pair<size_t, gtsam::Vector6>> stateIDAccMap(50 * graphBaseParamPtr_->smootherLag * graphBaseParamPtr_->optFrequency);
+      static uint notifyCounter = graphBaseParamPtr_->IMUMeasurementFrequency / graphBaseParamPtr_->stateFrequency;
+      static boost::circular_buffer<std::pair<double, gtsam::Vector3>> timeGyroMap(20 * graphBaseParamPtr_->IMUMeasurementFrequency / graphBaseParamPtr_->stateFrequency);
+      static boost::circular_buffer<std::pair<size_t, gtsam::Vector6>> stateIDAccMap(50 * graphBaseParamPtr_->smootherLag * graphBaseParamPtr_->stateFrequency);
       static gtsam::Vector6 lastAcc = gtsam::Vector6::Zero();
       static gtsam::Vector3 meanAccA, meanAccG = gtsam::Vector3();
       static uint64_t lastNState = 0;
@@ -350,9 +350,9 @@ namespace fgo::graph
     StatusGraphConstruction GraphTimeCentric::constructFactorGraphOnTime(const vector<double> &stateTimestamps,
                                                                          std::vector<fgo::data_types::IMUMeasurement> &dataIMU) {
         // example: imu on 100Hz and we optimize on 10 Hz, then we should count 10 imu measurements
-        static const double betweenOptimizationTime = 1. / paramPtr_->optFrequency;
-        static boost::circular_buffer<std::pair<double, gtsam::Vector3>> timeGyroMap(20 * graphBaseParamPtr_->IMUMeasurementFrequency / graphBaseParamPtr_->optFrequency);
-        static boost::circular_buffer<std::pair<size_t, gtsam::Vector6>> stateIDAccMap(50 * graphBaseParamPtr_->smootherLag * graphBaseParamPtr_->optFrequency);
+        static const double betweenOptimizationTime = 1. / paramPtr_->stateFrequency;
+        static boost::circular_buffer<std::pair<double, gtsam::Vector3>> timeGyroMap(20 * graphBaseParamPtr_->IMUMeasurementFrequency / graphBaseParamPtr_->stateFrequency);
+        static boost::circular_buffer<std::pair<size_t, gtsam::Vector6>> stateIDAccMap(50 * graphBaseParamPtr_->smootherLag * graphBaseParamPtr_->stateFrequency);
         static gtsam::Vector6 lastAcc = gtsam::Vector6::Zero();
         static gtsam::Vector3 meanAccA, meanAccG = gtsam::Vector3();
         static uint64_t lastNState = 0;
@@ -515,7 +515,6 @@ namespace fgo::graph
 
             meanAccG /= imuCounter;
             //meanAccA /= notifyCounter;
-
             currentPredState = graph::queryCurrentPredictedState(currentPredictedBuffer_.get_all_time_buffer_pair(), ts);
 
             gtsam::Vector3 gravity_b = gtsam::Vector3::Zero();
@@ -656,7 +655,9 @@ namespace fgo::graph
 
       solver_->update(*this, values_, keyTimestampMap_, gtsam::FactorIndices(), relatedKeys_);
       RCLCPP_INFO_STREAM(appPtr_->get_logger(), "GraphTimeCentric: updating finished!");
+
       gtsam::Values result = solver_->calculateEstimate();
+
       RCLCPP_INFO_STREAM(appPtr_->get_logger(), "GraphTimeCentric: calculateEstimate finished!");
       gtsam::Marginals marginals;
 

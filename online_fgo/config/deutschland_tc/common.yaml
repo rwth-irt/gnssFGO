@@ -7,7 +7,6 @@
         useIMUAsTimeReference: false
         bufferSize: 10
         optFrequency: 10 #in Hz
-        #optStrategy: 'onIMU' # 'onGNSS' or 'onIMU'
         calcErrorOnOpt: true
         cleanIMUonInit: true    # set this flag to clean the imu data before the timestamp of the initializing state
         useHeaderTimestamp: true

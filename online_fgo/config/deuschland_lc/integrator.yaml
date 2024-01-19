@@ -8,6 +8,7 @@
 
         IRTPVALCIntegrator:
           integratorPlugin: "GNSSLCIntegrator"
+          notIntegrating: true
           useForInitialization: true
           useHeaderTimestamp: true
           GNSSMeasurementFrequency: 10
@@ -15,13 +16,13 @@
           hasHeading: true
           hasPitch: false
           hasRoll: false
-          integrateAttitude: true
-          integrateVelocity: false
+          integrateAttitude: false
+          integrateVelocity: true
           onlyRTKFixed: false
 
           zeroVelocityThreshold: 0.06
           varScaleRTKFloat: 1.
-          varScaleSingle:   1.
+          varScaleSingle:   10.
           varScaleHeadingSingle: 10.
           varScaleHeadingRTKFloat: 5.
           varScaleNoSolution: 1000.
@@ -29,7 +30,7 @@
           solutionSyncQueueSize: 10
           MsgSyncLowerBound: 50000000
 
-          fixedVelVar: 0.5
+          fixedVelVar: 0.25
           posVarScale: 1.
           velVarScale: 5.
           headingVarScale: 1.
@@ -48,21 +49,22 @@
 
         UbloxLCIntegrator:
           integratorPlugin: "GNSSLCIntegrator"
+          notIntegrating: false
           useForInitialization: false
           useHeaderTimestamp: true
           transIMUToGNSSAnt1: [ 0., 0., -0.04 ] # [0.0, 0.0, 0.0]
-          zeroVelocityThreshold: -1.06
+          zeroVelocityThreshold: 0.06
 
-          GNSSMeasurementFrequency: 10
+          GNSSMeasurementFrequency: 5
           PVTSource: "ublox"
           hasHeading: true
           hasPitch: false
           hasRoll: false
-          integrateAttitude: true
-          integrateVelocity: false
+          integrateAttitude: false
+          integrateVelocity: true
           onlyRTKFixed: false
-          varScaleRTKFloat: 5.
-          varScaleSingle: 10.
+          varScaleRTKFloat: 1.
+          varScaleSingle: 5.
           varScaleHeadingSingle: 5.
           varScaleHeadingRTKFloat: 2.
           varScaleNoSolution: 100.
@@ -72,31 +74,25 @@
 
           fixedVelVar: 0.25
           posVarScale: 5.
-          velVarScale: 1.
+          velVarScale: 100.
           headingVarScale: 2.
           headingOffsetDeg: 0.
 
           attitudeFrame: "ned"
           attitudeType: "yaw"
-          velocityFrame: "ned"
+          velocityFrame: "ecef"
           velocityType: "3d"
           noiseModelAttitude: "cauchy"
           noiseModelVelocity: "cauchy"
           noiseModelPosition: "cauchy"
-          robustParamPos: 0.5
+          robustParamPos: 1.3737
           robustParamVel: 0.5
           robustParamAtt: 0.5
-
-          NovatelBestposTopic: "/novatel/oem7/bestpos"
-          NovatelBestvelTopic: "/novatel/oem7/bestvel"
-          NovatelHeadingTopic: "/novatel/oem7/dualantennaheading"
-
           ubloxPVTTopic: "/ublox/navpvt"
-          navfixTopic: "/ublox/fix"
 
         CorrevitIntegrator:
           integratorPlugin: "CorrevitIntegrator"
-          integrateVelocity: true
+          integrateVelocity: false
           enablePreIntegration: false
           velocitySigma: 0.1
           integrationSigma: 0.0001
@@ -151,9 +147,9 @@
           varianceRoll: 0.01 # 5 deg
           variancePitch: 0.01
           varianceYaw: 0.01
-          varianceX: 0.01
-          varianceY: 0.01
-          varianceZ: 0.01
+          varianceX: 0.04
+          varianceY: 0.04
+          varianceZ: 0.04
 
           surroundingKeyframeSearchRadius: 50.
           loopClosureEnableFlag: false

@@ -28,6 +28,7 @@ namespace gnss_fgo{
         bool verbose = false;
         bool useIMUAsTimeReference = false;
         int optFrequency = 10; // 10 Hz
+        int stateFrequency = 10;
         int bufferSize = 100;
 
         bool calibGravity = true;

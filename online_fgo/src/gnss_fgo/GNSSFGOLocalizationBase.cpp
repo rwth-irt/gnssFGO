@@ -43,6 +43,10 @@ namespace gnss_fgo
         utils::RosParameter<int> optFrequency("GNSSFGO.optFrequency", 10, *this);
         paramsPtr_->optFrequency = optFrequency.value();
 
+        utils::RosParameter<int> stateFrequency("GNSSFGO.stateFrequency", 10, *this);
+        paramsPtr_->stateFrequency = stateFrequency.value();
+
+
         utils::RosParameter<bool> calcErrorOnOpt("GNSSFGO.calcErrorOnOpt", false, *this);
         paramsPtr_->calcErrorOnOpt = calcErrorOnOpt.value();
 
@@ -238,7 +242,7 @@ namespace gnss_fgo
         imuDataBuffer_.resize_buffer(1000 * paramsPtr_->bufferSize);
         fgoPredStateBuffer_.resize_buffer(50);
         fgoOptStateBuffer_.resize_buffer(50);
-        pvaSolutionBuffer_.resize_buffer(100);
+        pvaSolutionBuffer_.resize_buffer(1000);
         return true;
     }
 
@@ -324,13 +328,13 @@ namespace gnss_fgo
 
             //initialization
 
-            const auto init_imu_pos = foundPVA.xyz_ecef - foundPVA.rot_ecef.rotate(paramsPtr_->transIMUToAnt1);
+            const auto init_imu_pos = foundPVA.xyz_ecef - foundPVA.rot_ecef.rotate(paramsPtr_->transIMUToReference);
             const auto vecGrav = /*init_nedRe * */fgo::utils::gravity_ecef(init_imu_pos);
             const auto gravity_b = foundPVA.rot_ecef.unrotate(vecGrav);
             lastOptimizedState_.omega = this_imu.gyro;
             lastOptimizedState_.accMeasured = (gtsam::Vector6() << this_imu.accRot, this_imu.accLin + gravity_b).finished();
 
-            const auto init_imu_vel = foundPVA.vel_ecef + foundPVA.rot_ecef.rotate(gtsam::skewSymmetric(paramsPtr_->transIMUToAnt1) * this_imu.gyro);
+            const auto init_imu_vel = foundPVA.vel_ecef + foundPVA.rot_ecef.rotate(gtsam::skewSymmetric(paramsPtr_->transIMUToReference) * this_imu.gyro);
             lastOptimizedState_.state = gtsam::NavState(foundPVA.rot_ecef,
                                                         init_imu_pos,
                                                         init_imu_vel);
@@ -524,6 +528,7 @@ namespace gnss_fgo
         while(rclcpp::ok())
         {
             static const double betweenOptimizationTime = 1. / paramsPtr_->optFrequency;
+            static const double betweenStateTime = 1. / paramsPtr_->stateFrequency;
             static auto lastNotInitializedTimestamp = std::chrono::system_clock::now();
             static double lastGraphTimestamp = 0;
             static auto firstRun = true;
@@ -580,12 +585,12 @@ namespace gnss_fgo
                 // we plan the state timestamps for the next graph extension
                 std::vector<double> newStateTimestamps;
 
-                while(timeDiff >= betweenOptimizationTime)
+                while(timeDiff >= betweenStateTime)
                 {
-                    lastGraphTimestamp += betweenOptimizationTime;
+                    lastGraphTimestamp += betweenStateTime;
                     RCLCPP_WARN_STREAM(this->get_logger(), "Time-Centric Graph: create state at " << std::fixed << lastGraphTimestamp );
                     newStateTimestamps.emplace_back(lastGraphTimestamp);
-                    timeDiff -= betweenOptimizationTime;
+                    timeDiff -= betweenStateTime;
                 }
 
                 RCLCPP_WARN_STREAM(this->get_logger(), "Time-Centric Graph: updated new state timestamps, remaining time diff: " << std::fixed << timeDiff );
@@ -684,6 +689,7 @@ namespace gnss_fgo
     double GNSSFGOLocalizationBase::optimize()
     {
         fgo::data_types::State newOptState;
+
         double optTime = graph_->optimize(newOptState);
         fgoOptStateBuffer_.update_buffer(newOptState, newOptState.timestamp);
         auto fgoStateMsg = this->convertFGOStateToMsg(newOptState);
@@ -696,7 +702,6 @@ namespace gnss_fgo
 
         std::vector<fgo::data_types::IMUMeasurement> dataIMU = imuDataBuffer_.get_all_buffer();
         auto restIMUData = graph_->getRestIMUData();
-
         currentIMUPreIntMutex_.lock();
         // Because the optimization took sometime, after the optimization, we again need to get the imu measurements, which are received while optimizing
         preIntegratorParams_->n_gravity = /*fgo::utils::nedRe_Matrix(lastOptimizedState_.state.position()) * */
@@ -744,178 +749,191 @@ namespace gnss_fgo
         if (this->isStateInited_ && paramsPtr_->calcErrorOnOpt) {
             calculateErrorOnState(newOptState);
         }
-
         return optTime;
     }
 
     void GNSSFGOLocalizationBase::calculateErrorOnState(const fgo::data_types::State &stateIn)
     {
-        static const auto l_b_ant_main = paramsPtr_->transIMUToAnt1;
+        static const auto l_b_ant_main = paramsPtr_->transIMUToReference;
         static std::vector<fgo::data_types::State> stateCached;
 
         //auto labelBuffer = gnssLabelingMsgBuffer_.get_all_buffer();
 
         auto pvaBuffer = pvaSolutionBuffer_.get_all_buffer();
-        const auto lastPVTTime = pvaBuffer.back().timestamp.seconds();
-        stateCached.emplace_back(stateIn);
 
-        auto stateIter = stateCached.begin();
-        while(stateIter != stateCached.end())
+        try
         {
-            double stateTime = stateIter->timestamp.seconds();
-            auto stateTimeNanoSec = stateIter->timestamp.nanoseconds();
-            if(stateTime < lastPVTTime)
+            stateCached.emplace_back(stateIn);
+            if(pvaBuffer.size() < 3) {
+                RCLCPP_ERROR_STREAM(this->get_logger(), "ERROR: NO ENOUGH PVA Data, returning");
+                return; }
+
+            const auto lastPVTTime = pvaBuffer.back().timestamp.seconds();
+            const auto firstPVTTime = pvaBuffer.front().timestamp.seconds();
+            auto stateIter = stateCached.begin();
+            while(stateIter != stateCached.end())
             {
-                // buffer is sorted
+                double stateTime = stateIter->timestamp.seconds();
+                auto stateTimeNanoSec = stateIter->timestamp.nanoseconds();
 
-                auto itAfter = std::lower_bound(pvaBuffer.begin(), pvaBuffer.end(), stateTime,
-                                                [](const fgo::data_types::PVASolution &pva, double timestamp) -> bool {
-                                                    // true, ... true, true, false(HERE), false, ... false
-                                                    return pva.timestamp.seconds() < timestamp;
-                                                });
-                auto itBefore = itAfter - 1;
-
-                //RCLCPP_ERROR_STREAM(this->get_logger(), "ERROR: PVT before: " << std::fixed << itBefore->timestamp);
-                //RCLCPP_ERROR_STREAM(this->get_logger(), "ERROR: state : " << std::fixed << stateTime);
-                //RCLCPP_ERROR_STREAM(this->get_logger(), "ERROR: PVT before: " << std::fixed << itAfter->timestamp);
-
-
-                const auto coeff = (stateTime - itBefore->timestamp.seconds()) / (itAfter->timestamp - itBefore->timestamp).seconds();
-                const double tiffDiff = stateTime - itBefore->timestamp.seconds();
-
-                //RCLCPP_ERROR_STREAM(this->get_logger(), "ERROR: PVT scale: " << std::fixed << coeff);
-
-                //const auto pvt_phi = gtsam::interpolate(itBefore->phi, itAfter->phi, coeff);
-                const auto ref_pos_llh_std = gtsam::interpolate(itBefore->xyz_var, itAfter->xyz_var, coeff).cwiseSqrt();
-
-                const auto pva_yaw = gtsam::interpolate(itBefore->heading, itAfter->heading, coeff);
-                const auto pva_yaw_std = gtsam::interpolate(sqrt(itBefore->heading_var), sqrt(itAfter->heading_var), coeff);
-                const auto pva_cog = gtsam::interpolate(itBefore->cog, itAfter->cog, coeff);
-                const auto pva_tow = gtsam::interpolate(itBefore->tow, itAfter->tow, coeff);
-                const auto pva_clock_bias = gtsam::interpolate(itBefore->clock_bias, itAfter->clock_bias, coeff);
-                const auto pva_clock_dirft = gtsam::interpolate(itBefore->clock_drift, itAfter->clock_drift, coeff);
-                const auto ref_vel_ned = gtsam::interpolate(itBefore->vel_n, itAfter->vel_n, coeff);
-
-                const auto ref_pos_llh = fgo::utils::WGS84InterpolationLLH(itBefore->llh,
-                                                                           itAfter->llh,
-                                                                           coeff);
-
-                sensor_msgs::msg::NavSatFix pvtMsg;
-                pvtMsg.header.stamp = stateIter->timestamp;
-                pvtMsg.altitude = ref_pos_llh.z() ;
-                pvtMsg.latitude = ref_pos_llh.x() * fgo::constants::rad2deg;
-                pvtMsg.longitude = ref_pos_llh.y() * fgo::constants::rad2deg;
-                pvtInterpolatedPub_->publish(pvtMsg);
-
-                irt_nav_msgs::msg::Error2GT error2Gt;
-
-                const gtsam::Vector2 ref_cbd(pva_clock_bias, pva_clock_dirft);
-
-                const auto& fgo_pos_ecef = stateIter->state.position();
-                const auto& fgo_ori_ecef = stateIter->state.attitude();
-                const auto& fgo_omega = stateIter->omega;
-                const auto& fgo_bias = stateIter->imuBias;
-                const auto& fgo_cbd = stateIter->cbd;
-                const auto& fgo_vel_ecef = stateIter->state.v();
-                const auto fgo_pose_ecef_std = stateIter->poseVar.diagonal().cwiseSqrt();
-                const auto fgo_vel_ecef_std = stateIter->velVar.diagonal().cwiseSqrt();
-                const auto fgo_omega_std = stateIter->omegaVar.diagonal().cwiseSqrt();
-                const auto fgo_cbd_std = stateIter->cbdVar.diagonal().cwiseSqrt();
-                const auto fgo_bias_std = stateIter->imuBiasVar.diagonal().cwiseSqrt();
-
-                const auto pos_ant_main_ecef = fgo_pos_ecef + fgo_ori_ecef.rotate(l_b_ant_main);
-                const auto pos_ant_llh = fgo::utils::xyz2llh(pos_ant_main_ecef);
-                const gtsam::Rot3 nRe(fgo::utils::nedRe_Matrix(pos_ant_main_ecef));
-                const auto fgo_pose_std_ned = (gtsam::Vector6() << nRe.rotate(fgo_pose_ecef_std.block<3, 1>(0, 0)), nRe.rotate(fgo_pose_ecef_std.block<3, 1>(3, 0))).finished();
-                const auto fgo_vel_ned = nRe.rotate(fgo_vel_ecef + fgo_ori_ecef.rotate(gtsam::skewSymmetric((-l_b_ant_main)) * fgo_omega));
-                const auto fgo_vel_ned_std = nRe.rotate(fgo_vel_ecef_std);
-                const auto nRb_rpy = fgo::utils::func_DCM2EulerAngles((nRe.compose(fgo_ori_ecef)).matrix());
-
-                auto fgo_yaw = nRb_rpy(2) * 180. / M_PI;
-                fgo_yaw = (fgo_yaw >= 0. ? fgo_yaw : (fgo_yaw + 360.));
-                const auto fgo_pitch = nRb_rpy(1) * 180. / M_PI;
-                const auto fgo_roll = nRb_rpy(0) * 180. / M_PI;
-
-                const auto ref_pos_ecef = fgo::utils::llh2xyz(ref_pos_llh);
-                const gtsam::Rot3 nReGT(fgo::utils::nedRe_Matrix_asLLH(ref_pos_llh));
-
-                fgo::utils::eigenMatrix2stdVector(ref_pos_llh, error2Gt.ref_llh);
-                fgo::utils::eigenMatrix2stdVector(ref_pos_llh_std, error2Gt.ref_llh_std);
-                fgo::utils::eigenMatrix2stdVector(fgo_pose_ecef_std, error2Gt.pose_std_ecef);
-                fgo::utils::eigenMatrix2stdVector(fgo_pose_std_ned, error2Gt.pose_std_ned);
-                fgo::utils::eigenMatrix2stdVector(fgo_vel_ecef_std, error2Gt.vel_std_ecef);
-                fgo::utils::eigenMatrix2stdVector(fgo_vel_ned_std, error2Gt.vel_std_ned);
-                fgo::utils::eigenMatrix2stdVector(fgo_cbd, error2Gt.cbd);
-                fgo::utils::eigenMatrix2stdVector(fgo_cbd_std, error2Gt.cbd_std);
-                fgo::utils::eigenMatrix2stdVector(ref_cbd, error2Gt.ref_cbd);
-                fgo::utils::eigenMatrix2stdVector(fgo_vel_ned, error2Gt.vel_ned);
-                fgo::utils::eigenMatrix2stdVector(ref_vel_ned, error2Gt.ref_vel);
-                fgo::utils::eigenMatrix2stdVector(fgo_bias.accelerometer(), error2Gt.acc_bias);
-                fgo::utils::eigenMatrix2stdVector(fgo_bias.gyroscope(), error2Gt.gyro_bias);
-                fgo::utils::eigenMatrix2stdVector(fgo_bias_std.head(3), error2Gt.acc_bias_std);
-                fgo::utils::eigenMatrix2stdVector(fgo_bias_std.tail(3), error2Gt.gyro_bias_std);
-                fgo::utils::eigenMatrix2stdVector(fgo_omega, error2Gt.omega_body);
-                fgo::utils::eigenMatrix2stdVector(fgo_omega_std, error2Gt.omega_body_std);
-
-                if (itAfter->type == fgo::data_types::GNSSSolutionType::RTKFIX)
+                if(stateTime < firstPVTTime)
                 {
-                    const auto pos_diff_ecef = pos_ant_main_ecef - ref_pos_ecef;
-                    const auto pos_error_ned = nRe.rotate(pos_diff_ecef);//
-                    const auto pos_error_body = fgo_ori_ecef.unrotate(pos_diff_ecef);
-                    const auto vel_error_ned = fgo_vel_ned - ref_vel_ned;
-
-                    const GeographicLib::Geodesic& geod = GeographicLib::Geodesic::WGS84();
-                    double dist;
-                    geod.Inverse(ref_pos_llh.x() * fgo::constants::rad2deg, ref_pos_llh.y() * fgo::constants::rad2deg,
-                                 pos_ant_llh.x() * fgo::constants::rad2deg, pos_ant_llh.y() * fgo::constants::rad2deg, dist);
-
-                    error2Gt.pos_2d_error_geographic = dist;
-                    error2Gt.pos_3d_error_geographic = std::sqrt(dist * dist + std::pow((ref_pos_llh.z() - pos_ant_llh.z()), 2));
-                    error2Gt.pos_1d_error_ned = abs(pos_error_ned(1));//fgo_ori.unrotate(pos_error_ecef)(1)
-                    error2Gt.pos_2d_error_ned = (pos_error_ned).block<2, 1>(0,0).norm();
-                    error2Gt.pos_3d_error_ned = pos_error_ned.norm();
-                    error2Gt.pos_1d_error_body = abs(pos_error_body(1));
-                    error2Gt.pos_2d_error_body = (pos_error_body).block<2, 1>(0,0).norm();
-                    error2Gt.pos_3d_error_body = pos_error_body.norm();
-                    error2Gt.pos_2d_error_ecef = (pos_diff_ecef).block<2, 1>(0,0).norm();
-                    error2Gt.pos_3d_error_ecef = pos_diff_ecef.norm();
-                    error2Gt.vel_2d_error = vel_error_ned.block<2, 1>(0,0).norm();
-                    error2Gt.vel_3d_error = vel_error_ned.norm();
-
-                    if((pva_yaw == 270. && pva_yaw == 0.) || pva_yaw_std > 30.)
-                        error2Gt.yaw_error = std::numeric_limits<double>::max();
-                    else
-                    {
-                        double yaw_error = fgo_yaw - pva_yaw;
-                        while (yaw_error > 180.0 || yaw_error < -180.0){
-                            if (yaw_error > 180.0)
-                                yaw_error -= 360.0;
-                            if (yaw_error < -180.0)
-                                yaw_error += 360.0;
-                        }
-                        yaw_error = abs(yaw_error);
-                        error2Gt.yaw_error = yaw_error;
-                    }
+                    RCLCPP_ERROR_STREAM(this->get_logger(), "ERROR: state timestamp in front of first reference timestamp. Considering enlarge buffer!");
+                    continue;
                 }
-                error2Gt.tow = pva_tow;
-                error2Gt.ref_tow_before = itBefore->tow;
-                error2Gt.ref_tow_after = itAfter->tow;
-                error2Gt.ref_error = itAfter->error;
-                error2Gt.ref_mode = itAfter->type;
-                error2Gt.yaw = fgo_yaw;
-                error2Gt.ref_yaw = pva_yaw;
-                error2Gt.ref_yaw_std = pva_yaw_std;
-                error2Gt.pitch = fgo_pitch;
-                error2Gt.roll = fgo_roll;
-                error2Gt.ref_pitch_roll = itAfter->roll_pitch;
-                error2Gt.ref_pitch_roll_std = sqrt(itAfter->roll_pitch_var);
-                error2Gt.header.stamp = stateIter->timestamp;
-                pvtErrorPub_->publish(error2Gt);
 
-                stateIter = stateCached.erase(stateIter);
-                continue;
+                if(stateTime < lastPVTTime)
+                {
+                    // buffer is sorted
+
+                    auto itAfter = std::lower_bound(pvaBuffer.begin(), pvaBuffer.end(), stateTime,
+                                                    [](const fgo::data_types::PVASolution &pva, double timestamp) -> bool {
+                                                        // true, ... true, true, false(HERE), false, ... false
+                                                        return pva.timestamp.seconds() < timestamp;
+                                                    });
+                    auto itBefore = itAfter - 1;
+
+                    //std::cout << "################################################" << std::endl;
+                    //std::cout << itAfter - pvaBuffer.begin() << std::endl;
+
+                    const auto coeff = (stateTime - itBefore->timestamp.seconds()) / (itAfter->timestamp - itBefore->timestamp).seconds();
+                    const double tiffDiff = stateTime - itBefore->timestamp.seconds();
+
+                    const auto ref_pos_llh_std = gtsam::interpolate(itBefore->xyz_var, itAfter->xyz_var, coeff).cwiseSqrt();
+                    const auto pva_yaw = gtsam::interpolate(itBefore->heading, itAfter->heading, coeff);
+                    const auto pva_yaw_std = gtsam::interpolate(sqrt(itBefore->heading_var), sqrt(itAfter->heading_var), coeff);
+                    const auto pva_cog = gtsam::interpolate(itBefore->cog, itAfter->cog, coeff);
+                    const auto pva_tow = gtsam::interpolate(itBefore->tow, itAfter->tow, coeff);
+                    const auto pva_clock_bias = gtsam::interpolate(itBefore->clock_bias, itAfter->clock_bias, coeff);
+                    const auto pva_clock_dirft = gtsam::interpolate(itBefore->clock_drift, itAfter->clock_drift, coeff);
+                    const auto ref_vel_ned = gtsam::interpolate(itBefore->vel_n, itAfter->vel_n, coeff);
+                    const auto ref_pos_llh = fgo::utils::WGS84InterpolationLLH(itBefore->llh,
+                                                                               itAfter->llh,
+                                                                               coeff);
+
+                    sensor_msgs::msg::NavSatFix pvtMsg;
+                    pvtMsg.header.stamp = stateIter->timestamp;
+                    pvtMsg.altitude = ref_pos_llh.z() ;
+                    pvtMsg.latitude = ref_pos_llh.x() * fgo::constants::rad2deg;
+                    pvtMsg.longitude = ref_pos_llh.y() * fgo::constants::rad2deg;
+                    pvtInterpolatedPub_->publish(pvtMsg);
+
+                    irt_nav_msgs::msg::Error2GT error2Gt;
+
+                    const gtsam::Vector2 ref_cbd(pva_clock_bias, pva_clock_dirft);
+
+                    const auto& fgo_pos_ecef = stateIter->state.position();
+                    const auto& fgo_ori_ecef = stateIter->state.attitude();
+                    const auto& fgo_omega = stateIter->omega;
+                    const auto& fgo_bias = stateIter->imuBias;
+                    const auto& fgo_cbd = stateIter->cbd;
+                    const auto& fgo_vel_ecef = stateIter->state.v();
+                    const auto fgo_pose_ecef_std = stateIter->poseVar.diagonal().cwiseSqrt();
+                    const auto fgo_vel_ecef_std = stateIter->velVar.diagonal().cwiseSqrt();
+                    const auto fgo_omega_std = stateIter->omegaVar.diagonal().cwiseSqrt();
+                    const auto fgo_cbd_std = stateIter->cbdVar.diagonal().cwiseSqrt();
+                    const auto fgo_bias_std = stateIter->imuBiasVar.diagonal().cwiseSqrt();
+                    const auto pos_ant_main_ecef = fgo_pos_ecef + fgo_ori_ecef.rotate(l_b_ant_main);
+                    const auto pos_ant_llh = fgo::utils::xyz2llh(pos_ant_main_ecef);
+                    const auto pos_ant_llh_inter = fgo::utils::xyz2llh_interative(pos_ant_main_ecef);
+                    const gtsam::Rot3 nRe(fgo::utils::nedRe_Matrix(pos_ant_main_ecef));
+                    const auto fgo_pose_std_ned = (gtsam::Vector6() << nRe.rotate(fgo_pose_ecef_std.block<3, 1>(0, 0)), nRe.rotate(fgo_pose_ecef_std.block<3, 1>(3, 0))).finished();
+                    const auto fgo_vel_ned = nRe.rotate(fgo_vel_ecef + fgo_ori_ecef.rotate(gtsam::skewSymmetric((-l_b_ant_main)) * fgo_omega));
+                    const auto fgo_vel_ned_std = nRe.rotate(fgo_vel_ecef_std);
+                    const auto nRb_rpy = fgo::utils::func_DCM2EulerAngles((nRe.compose(fgo_ori_ecef)).matrix());
+
+                    auto fgo_yaw = nRb_rpy(2) * 180. / M_PI;
+                    fgo_yaw = (fgo_yaw >= 0. ? fgo_yaw : (fgo_yaw + 360.));
+                    const auto fgo_pitch = nRb_rpy(1) * 180. / M_PI;
+                    const auto fgo_roll = nRb_rpy(0) * 180. / M_PI;
+
+                    const auto ref_pos_ecef = fgo::utils::llh2xyz(ref_pos_llh);
+                    const gtsam::Rot3 nReGT(fgo::utils::nedRe_Matrix_asLLH(ref_pos_llh));
+
+                    fgo::utils::eigenMatrix2stdVector(ref_pos_llh, error2Gt.ref_llh);
+                    fgo::utils::eigenMatrix2stdVector(ref_pos_llh_std, error2Gt.ref_llh_std);
+                    fgo::utils::eigenMatrix2stdVector(fgo_pose_ecef_std, error2Gt.pose_std_ecef);
+                    fgo::utils::eigenMatrix2stdVector(fgo_pose_std_ned, error2Gt.pose_std_ned);
+                    fgo::utils::eigenMatrix2stdVector(fgo_vel_ecef_std, error2Gt.vel_std_ecef);
+                    fgo::utils::eigenMatrix2stdVector(fgo_vel_ned_std, error2Gt.vel_std_ned);
+                    fgo::utils::eigenMatrix2stdVector(fgo_cbd, error2Gt.cbd);
+                    fgo::utils::eigenMatrix2stdVector(fgo_cbd_std, error2Gt.cbd_std);
+                    fgo::utils::eigenMatrix2stdVector(ref_cbd, error2Gt.ref_cbd);
+                    fgo::utils::eigenMatrix2stdVector(fgo_vel_ned, error2Gt.vel_ned);
+                    fgo::utils::eigenMatrix2stdVector(ref_vel_ned, error2Gt.ref_vel);
+                    fgo::utils::eigenMatrix2stdVector(fgo_bias.accelerometer(), error2Gt.acc_bias);
+                    fgo::utils::eigenMatrix2stdVector(fgo_bias.gyroscope(), error2Gt.gyro_bias);
+                    fgo::utils::eigenMatrix2stdVector(fgo_bias_std.head(3), error2Gt.acc_bias_std);
+                    fgo::utils::eigenMatrix2stdVector(fgo_bias_std.tail(3), error2Gt.gyro_bias_std);
+                    fgo::utils::eigenMatrix2stdVector(fgo_omega, error2Gt.omega_body);
+                    fgo::utils::eigenMatrix2stdVector(fgo_omega_std, error2Gt.omega_body_std);
+
+                    if (itAfter->type == fgo::data_types::GNSSSolutionType::RTKFIX)
+                    {
+                        const auto pos_diff_ecef = pos_ant_main_ecef - ref_pos_ecef;
+                        const auto pos_error_ned = nRe.rotate(pos_diff_ecef);//
+                        const auto pos_error_body = fgo_ori_ecef.unrotate(pos_diff_ecef);
+                        const auto vel_error_ned = fgo_vel_ned - ref_vel_ned;
+
+                        const GeographicLib::Geodesic& geod = GeographicLib::Geodesic::WGS84();
+                        double dist;
+                        geod.Inverse(ref_pos_llh.x() * fgo::constants::rad2deg, ref_pos_llh.y() * fgo::constants::rad2deg,
+                                     pos_ant_llh.x() * fgo::constants::rad2deg, pos_ant_llh.y() * fgo::constants::rad2deg, dist);
+
+                        error2Gt.pos_2d_error_geographic = dist;
+                        error2Gt.pos_3d_error_geographic = std::sqrt(dist * dist + std::pow((ref_pos_llh.z() - pos_ant_llh.z()), 2));
+                        error2Gt.pos_1d_error_ned = abs(pos_error_ned(1));//fgo_ori.unrotate(pos_error_ecef)(1)
+                        error2Gt.pos_2d_error_ned = (pos_error_ned).block<2, 1>(0,0).norm();
+                        error2Gt.pos_3d_error_ned = pos_error_ned.norm();
+                        error2Gt.pos_1d_error_body = abs(pos_error_body(1));
+                        error2Gt.pos_2d_error_body = (pos_error_body).block<2, 1>(0,0).norm();
+                        error2Gt.pos_3d_error_body = pos_error_body.norm();
+                        error2Gt.pos_2d_error_ecef = (pos_diff_ecef).block<2, 1>(0,0).norm();
+                        error2Gt.pos_3d_error_ecef = pos_diff_ecef.norm();
+                        error2Gt.vel_2d_error = vel_error_ned.block<2, 1>(0,0).norm();
+                        error2Gt.vel_3d_error = vel_error_ned.norm();
+
+                        if((pva_yaw == 270. && pva_yaw == 0.) || pva_yaw_std > 30.)
+                            error2Gt.yaw_error = std::numeric_limits<double>::max();
+                        else
+                        {
+                            double yaw_error = fgo_yaw - pva_yaw;
+                            while (yaw_error > 180.0 || yaw_error < -180.0){
+                                if (yaw_error > 180.0)
+                                    yaw_error -= 360.0;
+                                if (yaw_error < -180.0)
+                                    yaw_error += 360.0;
+                            }
+                            yaw_error = abs(yaw_error);
+                            error2Gt.yaw_error = yaw_error;
+                        }
+                    }
+                    error2Gt.tow = pva_tow;
+                    error2Gt.ref_tow_before = itBefore->tow;
+                    error2Gt.ref_tow_after = itAfter->tow;
+                    error2Gt.ref_error = itAfter->error;
+                    error2Gt.ref_mode = itAfter->type;
+                    error2Gt.yaw = fgo_yaw;
+                    error2Gt.ref_yaw = pva_yaw;
+                    error2Gt.ref_yaw_std = pva_yaw_std;
+                    error2Gt.pitch = fgo_pitch;
+                    error2Gt.roll = fgo_roll;
+                    error2Gt.ref_pitch_roll = itAfter->roll_pitch;
+                    error2Gt.ref_pitch_roll_std = sqrt(itAfter->roll_pitch_var);
+                    error2Gt.header.stamp = stateIter->timestamp;
+                    pvtErrorPub_->publish(error2Gt);
+
+                    stateIter = stateCached.erase(stateIter);
+                    continue;
+                }
+                stateIter ++;
             }
-            stateIter ++;
+        }
+        catch(std::exception& ex)
+        {
+
+            std::cout << ex.what() << std::endl;
+            RCLCPP_ERROR_STREAM(this->get_logger(), "ERROR: " << ex.what());
         }
     }
 

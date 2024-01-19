@@ -151,10 +151,13 @@ namespace gnss_fgo
         std::atomic_bool lastInitFinished_ = true;
         rclcpp::Time lastInitROSTimestamp_{};
         std::condition_variable conDoInit_;
+        fgo::buffer::CircularDataBuffer<fgo::data_types::State> calcErrorState_;
+
 
         // threading management
         std::shared_ptr<std::thread> optThread_;
         std::shared_ptr<std::thread> initFGOThread_;
+        std::shared_ptr<std::thread> calcErrorThread_;
         std::mutex allBufferMutex_;
         std::mutex currentIMUPreIntMutex_;
 

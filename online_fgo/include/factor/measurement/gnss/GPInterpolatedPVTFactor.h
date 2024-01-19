@@ -37,6 +37,7 @@
 #include "utils/NavigationTools.h"
 #include "data/FactorTypes.h"
 #include "factor/FactorTypeIDs.h"
+#include "third_party/matlab_utils.h"
 
 namespace fgo::factor
 {
@@ -93,6 +94,8 @@ namespace fgo::factor
                                                   boost::optional<gtsam::Matrix &> H5 = boost::none,
                                                   boost::optional<gtsam::Matrix &> H6 = boost::none) const override
         {
+            // NOT using auto. diff. due to numerical instability
+            /*
           if(useAutoDiff_)
           {
             if(H1)
@@ -122,8 +125,8 @@ namespace fgo::factor
             return evaluateError_(poseI, velI, omegaI, poseJ, velJ, omegaJ);
           }
           else
-          {
-            gtsam::Matrix Hint1_P, Hint2_P, Hint3_P, Hint4_P, Hint5_P, Hint6_P, Hpose, Hrot, Hrot2, Hvele;
+          {*/
+            gtsam::Matrix Hint1_P, Hint2_P, Hint3_P, Hint4_P, Hint5_P, Hint6_P, Hpose, Hrot, Hrot2, Hvelp, Hvelv;
             gtsam::Matrix Hint1_V, Hint2_V, Hint3_V, Hint4_V, Hint5_V, Hint6_V;
 
             gtsam::Pose3 pose;
@@ -141,48 +144,51 @@ namespace fgo::factor
             }
 
             const auto& rot = pose.rotation(Hrot);
-            const auto& posEva = pose.translation(Hpose) + rot.rotate(lb_, Hrot2);
+            const auto posEva = pose.translation(Hpose) + rot.rotate(lb_, Hrot2);
             const auto lb_skew = gtsam::skewSymmetric(-lb_);
             const auto lbv = lb_skew * vel.head(3);
-            const auto& vel_e = rot.rotate(vel.tail(3) + lbv, Hvele);
+            const auto vel_e = rot.rotate(vel.tail(3) + lbv, Hvelp, Hvelv);
             const auto ePos = posEva - pos_;
 
             //  Shape 6x6                        3x6  * 6x6        3x3 *  3x6 *   6x6
-            if(H1) *H1 = (gtsam::Matrix66() << (Hpose + Hrot2 * Hrot) * Hint1_P,  Hvele * Hrot * Hint1_V).finished();    // Shape 6 x 6
-            if(H4) *H4 = (gtsam::Matrix66() << (Hpose + Hrot2 * Hrot) * Hint4_P,  Hvele * Hrot * Hint4_V).finished();    // Shape 6 x 6
+            gtsam::Vector3 eVel;
 
             if(velocityFrame_ == MeasurementFrame::ECEF)
             {
-              const auto eVel = vel_e - vel_;
-              if(H2) *H2 = (gtsam::Matrix63() << Hpose * Hint2_P, Hvele * Hint2_V.block<3, 3>(3, 0)).finished();
-              if(H3) *H3 = (gtsam::Matrix63() << Hpose * Hint3_P, Hvele * (lb_skew + Hint2_V.block<3, 3>(0, 0))).finished();
-              if(H5) *H5 = (gtsam::Matrix63() << Hpose * Hint5_P, Hvele * Hint5_V.block<3, 3>(3, 0)).finished();
-              if(H6) *H6 = (gtsam::Matrix63() << Hpose * Hint6_P, Hvele * (lb_skew + Hint6_V.block<3, 3>(0, 0))).finished();
-              return (gtsam::Vector6() << ePos, eVel).finished();
+              eVel = vel_e - vel_;
+              if(H1) *H1 = (gtsam::Matrix66() << (Hpose + Hrot2 * Hrot) * Hint1_P,  Hvelp * Hrot * Hint1_V + Hvelv).finished();    // Shape 6 x 6
+              if(H4) *H4 = (gtsam::Matrix66() << (Hpose + Hrot2 * Hrot) * Hint4_P,  Hvelp * Hrot * Hint4_V + Hvelv).finished();    // Shape 6 x 6
+              if(H2) *H2 = (gtsam::Matrix63() << Hpose * Hint2_P, Hvelv * Hint2_V.block<3, 3>(3, 0)).finished();
+              if(H3) *H3 = (gtsam::Matrix63() << Hpose * Hint3_P, Hvelv * (Hint2_V.block<3, 3>(0, 0))).finished();
+              if(H5) *H5 = (gtsam::Matrix63() << Hpose * Hint5_P, Hvelv * Hint5_V.block<3, 3>(3, 0)).finished();
+              if(H6) *H6 = (gtsam::Matrix63() << Hpose * Hint6_P, Hvelv * (Hint6_V.block<3, 3>(0, 0))).finished();
             }
             else if(velocityFrame_ == MeasurementFrame::NED)
             {
-              gtsam::Matrix Hvel_;
               const auto nedRe = gtsam::Rot3(fgo::utils::nedRe_Matrix(posEva));
-              const auto eVel = nedRe.rotate(vel_e, Hvel_) - vel_;
-              if(H2) *H2 = (gtsam::Matrix63() << Hpose * Hint2_P, Hvel_ * Hvele * Hint2_V.block<3, 3>(3, 0)).finished();
-              if(H3) *H3 = (gtsam::Matrix63() << Hpose * Hint3_P, Hvel_ * Hvele * (lb_skew + Hint2_V.block<3, 3>(0, 0))).finished();
-              if(H5) *H5 = (gtsam::Matrix63() << Hpose * Hint5_P, Hvel_ * Hvele * Hint5_V.block<3, 3>(3, 0)).finished();
-              if(H6) *H6 = (gtsam::Matrix63() << Hpose * Hint6_P, Hvel_ * Hvele * (lb_skew + Hint6_V.block<3, 3>(0, 0))).finished();
-              return (gtsam::Vector6() << ePos, eVel).finished();
+              const auto jac = matlab_utils::jacobianECEF2NED(posEva, vel_e);
+              eVel = nedRe.rotate(vel_e) - vel_;
+              if(H1) *H1 = (gtsam::Matrix66() << (Hpose + Hrot2 * Hrot) * Hint1_P,  jac.block<3,3>(0,0)* (Hvelp * Hrot * Hint1_V + Hvelv)).finished();    // Shape 6 x 6
+              if(H4) *H4 = (gtsam::Matrix66() << (Hpose + Hrot2 * Hrot) * Hint4_P,  jac.block<3,3>(0,0)* (Hvelp * Hrot * Hint4_V + Hvelv)).finished();    // Shape 6 x 6
+              if(H2) *H2 = (gtsam::Matrix63() << Hpose * Hint2_P, jac.block<3,3>(3,0) * Hvelv * Hint2_V.block<3, 3>(3, 0)).finished();
+              if(H3) *H3 = (gtsam::Matrix63() << Hpose * Hint3_P, jac.block<3,3>(3,0) * Hvelv * ( Hint2_V.block<3, 3>(0, 0))).finished();
+              if(H5) *H5 = (gtsam::Matrix63() << Hpose * Hint5_P, jac.block<3,3>(3,0) * Hvelv * Hint5_V.block<3, 3>(3, 0)).finished();
+              if(H6) *H6 = (gtsam::Matrix63() << Hpose * Hint6_P, jac.block<3,3>(3,0) * Hvelv * ( Hint6_V.block<3, 3>(0, 0))).finished();
             }
             else
             {
-              gtsam::Matrix Hvel_;
               const auto enuRe = gtsam::Rot3(fgo::utils::enuRe_Matrix(posEva));
-              const auto eVel = enuRe.rotate(vel_e, Hvel_) - vel_;
-              if(H2) *H2 = (gtsam::Matrix63() << Hpose * Hint2_P, Hvel_ * Hvele * Hint2_V.block<3, 3>(3, 0)).finished();
-              if(H3) *H3 = (gtsam::Matrix63() << Hpose * Hint3_P, Hvel_ * Hvele * (lb_skew + Hint2_V.block<3, 3>(0, 0))).finished();
-              if(H5) *H5 = (gtsam::Matrix63() << Hpose * Hint5_P, Hvel_ * Hvele * Hint5_V.block<3, 3>(3, 0)).finished();
-              if(H6) *H6 = (gtsam::Matrix63() << Hpose * Hint6_P, Hvel_ * Hvele * (lb_skew + Hint6_V.block<3, 3>(0, 0))).finished();
-              return (gtsam::Vector6() << ePos, eVel).finished();
+              eVel = enuRe.rotate(vel_e) - vel_;
+              const auto jac = matlab_utils::jacobianECEF2ENU(posEva, vel_e);
+              if(H1) *H1 = (gtsam::Matrix66() << (Hpose + Hrot2 * Hrot) * Hint1_P,  jac.block<3,3>(0,0) * Hvelp * Hrot * Hint1_V).finished();    // Shape 6 x 6
+              if(H4) *H4 = (gtsam::Matrix66() << (Hpose + Hrot2 * Hrot) * Hint4_P,  jac.block<3,3>(0,0) * Hvelp * Hrot * Hint4_V).finished();    // Shape 6 x 6
+              if(H2) *H2 = (gtsam::Matrix63() << Hpose * Hint2_P, jac.block<3,3>(3,0) * Hvelv * Hint2_V.block<3, 3>(3, 0)).finished();
+              if(H3) *H3 = (gtsam::Matrix63() << Hpose * Hint3_P, jac.block<3,3>(3,0) * Hvelv * (lb_skew + Hint2_V.block<3, 3>(0, 0))).finished();
+              if(H5) *H5 = (gtsam::Matrix63() << Hpose * Hint5_P, jac.block<3,3>(3,0) * Hvelv * Hint5_V.block<3, 3>(3, 0)).finished();
+              if(H6) *H6 = (gtsam::Matrix63() << Hpose * Hint6_P, jac.block<3,3>(3,0) * Hvelv * (lb_skew + Hint6_V.block<3, 3>(0, 0))).finished();
             }
-          }
+            return (gtsam::Vector6() << ePos, eVel).finished();
+          //}
         }
 
         [[nodiscard]] gtsam::Vector evaluateError_(const gtsam::Pose3 &poseI, const gtsam::Vector3 &velI, const gtsam::Vector3 &omegaI,

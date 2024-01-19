@@ -90,8 +90,6 @@ namespace fgo::solvers {
          * a single variable is needed, it is faster to call calculateEstimate(const KEY&).
          */
         gtsam::Values calculateEstimate() const override {
-
-          std::cout << "calculateEstimate " <<std::endl;
             return isam_.calculateEstimate();
         }
 

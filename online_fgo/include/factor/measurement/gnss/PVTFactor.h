@@ -17,8 +17,8 @@
 //
 
 
-#ifndef ONLINE_FGO_PVTFACTOR_H
-#define ONLINE_FGO_PVTFACTOR_H
+#ifndef ONLINE_FGO_PVTFACTOR_WITHOMEGA_H
+#define ONLINE_FGO_PVTFACTOR_WITHOMEGA_H
 
 #pragma once
 
@@ -37,33 +37,33 @@
 #include "data/FactorTypes.h"
 #include "factor/FactorTypeIDs.h"
 
+#include "third_party/matlab_utils.h"
+
 namespace fgo::factor
 {
-    class PVTFactor : public gtsam::NoiseModelFactor3<gtsam::Pose3, gtsam::Vector3, gtsam::imuBias::ConstantBias>
+    class PVTFactor : public gtsam::NoiseModelFactor3<gtsam::Pose3, gtsam::Vector3, gtsam::Vector3>
     {
     protected:
         gtsam::Point3 posMeasured_;
         gtsam::Vector3 velMeasured_;
         MeasurementFrame velocityFrame_ = MeasurementFrame::BODY;
         gtsam::Vector3 lb_;//lever arm between IMU and antenna in body frame
-        gtsam::Vector3 omega_;
 
         typedef PVTFactor This;
-        typedef gtsam::NoiseModelFactor3<gtsam::Pose3, gtsam::Vector3, gtsam::imuBias::ConstantBias> Base;
+        typedef gtsam::NoiseModelFactor3<gtsam::Pose3, gtsam::Vector3, gtsam::Vector3> Base;
         bool useAutoDiff_ = false;
 
     public:
         PVTFactor() = default;
 
-        PVTFactor(const gtsam::Key& poseKey, const gtsam::Key& velKey, const gtsam::Key& biasKey,
+        PVTFactor(const gtsam::Key& poseKey, const gtsam::Key& velKey, const gtsam::Key& omegaKey,
                   const gtsam::Point3& positionMeasured,
                   const gtsam::Vector3& velocityMeasured,
                   const gtsam::Vector3 &lb,
-                  const gtsam::Vector3 &omega,
                   MeasurementFrame velocityFrame,
                   const gtsam::SharedNoiseModel& model,
-                  bool useAutoDiff = false) : Base(model, poseKey, velKey, biasKey), posMeasured_(positionMeasured),
-                  velMeasured_(velocityMeasured), velocityFrame_(velocityFrame), lb_(lb), omega_(omega), useAutoDiff_(useAutoDiff)
+                  bool useAutoDiff = false) : Base(model, poseKey, velKey, omegaKey), posMeasured_(positionMeasured),
+                  velMeasured_(velocityMeasured), velocityFrame_(velocityFrame), lb_(lb), useAutoDiff_(useAutoDiff)
                   {
                     factorTypeID_ = FactorTypeIDs::PVT;
                     factorName_ = "PVTFactor";
@@ -78,76 +78,82 @@ namespace fgo::factor
         }
 
         [[nodiscard]] gtsam::Vector evaluateError(const gtsam::Pose3 &pose, const gtsam::Vector3 &vel,
-                                                  const gtsam::imuBias::ConstantBias& bias,
+                                                  const gtsam::Vector3& omega,
                                                   boost::optional<gtsam::Matrix &> H1 = boost::none,
                                                   boost::optional<gtsam::Matrix &> H2 = boost::none,
                                                   boost::optional<gtsam::Matrix &> H3 = boost::none) const override
         {
+            /*
           if(useAutoDiff_)
           {
             if(H1)
-              *H1 = gtsam::numericalDerivative31<gtsam::Vector6, gtsam::Pose3, gtsam::Vector3, gtsam::imuBias::ConstantBias>(
-                  boost::bind(&This::evaluateError_, this, boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3), pose, vel, bias, 1e-5);
+              *H1 = gtsam::numericalDerivative31<gtsam::Vector6, gtsam::Pose3, gtsam::Vector3, gtsam::Vector3>(
+                  boost::bind(&This::evaluateError_, this, boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3), pose, vel, omega, 1e-5);
             if(H2)
-              *H2 = gtsam::numericalDerivative32<gtsam::Vector6, gtsam::Pose3, gtsam::Vector3, gtsam::imuBias::ConstantBias>(
-                  boost::bind(&This::evaluateError_, this, boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3), pose, vel, bias, 1e-5);
+              *H2 = gtsam::numericalDerivative32<gtsam::Vector6, gtsam::Pose3, gtsam::Vector3, gtsam::Vector3>(
+                  boost::bind(&This::evaluateError_, this, boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3), pose, vel, omega, 1e-5);
             if(H3)
-              *H3 = gtsam::numericalDerivative33<gtsam::Vector6, gtsam::Pose3, gtsam::Vector3, gtsam::imuBias::ConstantBias>(
-                  boost::bind(&This::evaluateError_, this, boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3), pose, vel, bias, 1e-5);
-            return evaluateError_(pose, vel, bias);
+              *H3 = gtsam::numericalDerivative33<gtsam::Vector6, gtsam::Pose3, gtsam::Vector3, gtsam::Vector3>(
+                  boost::bind(&This::evaluateError_, this, boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3), pose, vel, omega, 1e-5);
+            return evaluateError_(pose, vel, omega);
           }
           else
-          {
+          {*/
             gtsam::Matrix Hpose_P, Hpose_Pr, Hpose_r, Hdrho_p, Hdrho_t;
 
             const gtsam::Rot3& eRb = pose.rotation(&Hpose_Pr);
-            const auto& pos = pose.translation(Hpose_P);
-            const auto ePos = pos + eRb.rotate(lb_, Hpose_r) - posMeasured_;
-            const auto lbv = gtsam::skewSymmetric(-lb_) * omega_;
-            const auto vel_ant = vel + eRb.rotate(lbv, Hdrho_t);
+            const auto pos_ant = pose.translation(Hpose_P) + eRb.rotate(lb_, Hpose_r);
+            const auto ePos = pos_ant - posMeasured_;
+            const auto lb_skew = gtsam::skewSymmetric(-lb_);
+            const auto lbv = lb_skew * omega;
+            const auto vel_ant = vel + eRb.rotate(lbv, Hdrho_t, Hdrho_p);
 
-            const auto Matrix36Zero = gtsam::Matrix36::Zero();
+            gtsam::Vector3 eVel;
 
-            if(H1)
-              *H1 = (gtsam::Matrix66() <<Hpose_P +  Hpose_r * Hpose_Pr, Matrix36Zero).finished();
 
             if(velocityFrame_ == MeasurementFrame::ECEF)
             {
-              const auto eVel = vel_ant - velMeasured_;
+              eVel = vel_ant - velMeasured_;
+              if(H1) *H1 = (gtsam::Matrix66() <<Hpose_P +  Hpose_r * Hpose_Pr, Hdrho_t * Hpose_Pr + Hdrho_p).finished();
               if(H2) *H2 = (gtsam::Matrix63() << gtsam::Matrix33::Zero(), gtsam::Matrix33::Identity()).finished();  // Shape 6 x 3
-              return (gtsam::Vector6() << ePos, eVel).finished();
+              if(H3) *H3 = (gtsam::Matrix63() << gtsam::Matrix33::Zero(), Hdrho_p ).finished();  // Shape 6 x 3
+
             }
             else if(velocityFrame_ == MeasurementFrame::NED)
             {
-              gtsam::Matrix Hvel;
-              const auto eRned = gtsam::Rot3(fgo::utils::nedRe_Matrix(pos).inverse());
-              const auto eVel = eRned.rotate(vel_ant, Hvel) - velMeasured_;
-              if(H2) *H2 = (gtsam::Matrix63() << gtsam::Matrix33::Zero(), Hvel).finished();  // Shape 6 x 3
-              return (gtsam::Vector6() << ePos, eVel).finished();
+              const auto nRe = gtsam::Rot3(fgo::utils::nedRe_Matrix(pos_ant));
+              eVel = nRe.rotate(vel_ant) - velMeasured_;
+              const auto jac = matlab_utils::jacobianECEF2NED(pos_ant, vel_ant);
+
+              if(H1) *H1 = (gtsam::Matrix66() <<Hpose_P +  Hpose_r * Hpose_Pr, jac.block<3,3>(0,0)* (Hdrho_t * Hpose_Pr + Hdrho_p)).finished();
+              if(H2) *H2 = (gtsam::Matrix63() << gtsam::Matrix33::Zero(), jac.block<3,3>(0,0)).finished();  // Shape 6 x 3
+              if(H3) *H3 = (gtsam::Matrix63() << gtsam::Matrix33::Zero(), jac.block<3,3>(0,0)*  Hdrho_p).finished();  // Shape 6 x 3
             }
             else
             {
-              gtsam::Matrix Hpose, Hvel;
-              const auto eRenu = gtsam::Rot3(fgo::utils::enuRe_Matrix(pos).inverse());
-              const auto eVel = eRenu.rotate(vel_ant, Hvel) - velMeasured_;
-              if(H2) *H2 = (gtsam::Matrix63() << gtsam::Matrix33::Zero(), Hvel).finished();  // Shape 6 x 3
-              return (gtsam::Vector6() << ePos, eVel).finished();
+              const auto nRe = gtsam::Rot3(fgo::utils::enuRe_Matrix(pos_ant));
+              eVel = nRe.rotate(vel_ant) - velMeasured_;
+              const auto jac = matlab_utils::jacobianECEF2ENU(pos_ant, vel_ant);
+              if(H1) *H1 = (gtsam::Matrix66() <<Hpose_P +  Hpose_r * Hpose_Pr, jac.block<3,3>(0,0) * (Hdrho_t * Hpose_Pr + Hdrho_p)).finished();
+              if(H2) *H2 = (gtsam::Matrix63() << gtsam::Matrix33::Zero(), jac.block<3,3>(0,0)).finished();  // Shape 6 x 3
+              if(H3) *H3 = (gtsam::Matrix63() << gtsam::Matrix33::Zero(), jac.block<3,3>(0,0) * Hdrho_p ).finished();  // Shape 6 x 3
             }
-          }
+            return (gtsam::Vector6() << ePos, eVel).finished();
+          //}
         }
 
         [[nodiscard]] gtsam::Vector evaluateError_(const gtsam::Pose3 &pose,
                                                    const gtsam::Vector3 &vel,
-                                                   const gtsam::imuBias::ConstantBias& bias) const
+                                                   const gtsam::Vector3& omega) const
         {
 
           const auto& eRb =  pose.rotation();
           const auto ePos = pose.translation() + eRb.rotate(lb_) - posMeasured_;
-          const auto lbv = gtsam::skewSymmetric(-lb_) * bias.correctGyroscope(omega_);
+          const auto lbv = gtsam::skewSymmetric(-lb_) * omega;
 
           if(velocityFrame_ == MeasurementFrame::ECEF)
           {
-            const auto eVel = vel + eRb.rotate(lbv) - velMeasured_;
+            const auto eVel = vel - velMeasured_;
             return (gtsam::Vector6() << ePos, eVel).finished();
           }
           else if(velocityFrame_ == MeasurementFrame::NED)
@@ -209,4 +215,4 @@ namespace gtsam {
     struct traits<fgo::factor::PVTFactor> : public Testable<fgo::factor::PVTFactor> {
     };
 }
-#endif //ONLINE_FGO_PVTFACTOR_H
+#endif //ONLINE_FGO_PVTFACTOR_WITHOMEGA_H

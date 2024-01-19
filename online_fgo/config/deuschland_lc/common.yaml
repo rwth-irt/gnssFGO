@@ -4,9 +4,9 @@
       use_sim_time: true
       GNSSFGO:
         verbose: false
-        useIMUAsTimeReference: false
+        useIMUAsTimeReference: true
         bufferSize: 10
-        optFrequency: 10 #in Hz
+        optFrequency: 5 #in Hz
         calcErrorOnOpt: true
         cleanIMUonInit: true    # set this flag to clean the imu data before the timestamp of the initializing state
         useHeaderTimestamp: true
@@ -19,7 +19,7 @@
           initSigmaC: [ 1000., 10. ] #cb in m, cd in m/s
 
         IMUPreintegrator:
-          accelerometerSigma: 3.9939570888238808e-04 #8e-4 # 8e-4
+          accelerometerSigma: 8e-4 #3.9939570888238808e-04 #8e-4 # 8e-4
           integrationSigma: 1e-5  #1e-5
           gyroscopeSigma: 0.0006939335887264338 #1.5636343949698187e-05   #52e-4 # 52e-5
           biasAccSigma: 0.000167 # 4e-4
@@ -27,7 +27,7 @@
           biasAccOmegaInt: 0.00001 # 0.00001
 
         Graph:
-          publishResiduals: true
+          publishResiduals: false
           IMUMeasurementFrequency: 200  #
           useGPPriorFactor: true
           gpType: 'WNOJ'  # 'WNOA'
@@ -53,7 +53,7 @@
           magnetometerStd: 0.01
 
           NoOptimizationWhileNoMeasurement: false
-          NoOptimizationNearZeroVelocity: false
+          NoOptimizationNearZeroVelocity: true
           VoteNearZeroVelocity: 0.1 # 20%
           NoOptimizationAfterStates: 0
 
@@ -67,12 +67,12 @@
           rotIMUToLiDAR: [1., 0., 0., 0., -1., 0., 0., 0., -1. ]
           transIMUToCorrevit: [ -1.78, 0., 1.2 ]
 
-        Integrators: ["IRTPVALCIntegrator", "CorrevitIntegrator", "LIOIntegrator"]   # ["UbloxIntegrator", "CorrevitIntegrator", "GNSSTCIntegrator", "LIOIntegrator"]
+        Integrators: [ "IRTPVALCIntegrator", "UbloxLCIntegrator", "CorrevitIntegrator"]   # ["UbloxLCIntegrator", "CorrevitIntegrator", "GNSSTCIntegrator", "LIOIntegrator"]
 
         Optimizer:
           #undefined, BatchFixedLag, IncrementalFixedLag
           smootherType: 'IncrementalFixedLag'
-          smootherLag: 5. #marginalization threshhold
+          smootherLag: 3. #marginalization threshhold
           #QcGPWNOJInterpolatorFull: [ 10000., 10000., 10000., 10000., 10000., 10000. ]
           #QcGPWNOJMotionPriorFull: [ 10000., 10000., 10000., 10000., 10000., 10000. ]
           QcGPWNOJInterpolatorFull: [ 10000., 10000., 10000., 10000., 10000., 10000. ]

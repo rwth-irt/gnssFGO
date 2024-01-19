@@ -875,7 +875,7 @@ namespace sensors::LiDAR::LIOSAM
           pow(matX.at<float>(4, 0) * 100, 2) +
           pow(matX.at<float>(5, 0) * 100, 2));
 
-      std::cout << "############## LIDAR OPTIMIUZATION: deltaR: " << deltaR << " DeltaT: " << deltaT << std::endl;
+     // std::cout << "############## LIDAR OPTIMIUZATION: deltaR: " << deltaR << " DeltaT: " << deltaT << std::endl;
       if (deltaR < 0.05 && deltaT < 0.05) {
         return {true, deltaR, deltaT}; // converged
       }

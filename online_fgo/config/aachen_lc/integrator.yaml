@@ -8,6 +8,7 @@
 
         IRTPVALCIntegrator:
           integratorPlugin: "GNSSLCIntegrator"
+          notIntegrating: true
           useForInitialization: true
           useHeaderTimestamp: true
           GNSSMeasurementFrequency: 10
@@ -46,6 +47,50 @@
           robustParamVel: 0.5
           robustParamAtt: 0.5
 
+        UbloxLCIntegrator:
+          integratorPlugin: "GNSSLCIntegrator"
+          notIntegrating: false
+          useForInitialization: false
+          useHeaderTimestamp: true
+          transIMUToGNSSAnt1: [ 0., 0., -0.04 ] # [0.0, 0.0, 0.0]
+          zeroVelocityThreshold: 0.06
+
+          GNSSMeasurementFrequency: 5
+          PVTSource: "ublox"
+          hasHeading: true
+          hasPitch: false
+          hasRoll: false
+          integrateAttitude: false
+          integrateVelocity: true
+          onlyRTKFixed: false
+          varScaleRTKFloat: 1.
+          varScaleSingle: 5.
+          varScaleHeadingSingle: 5.
+          varScaleHeadingRTKFloat: 2.
+          varScaleNoSolution: 100.
+
+          solutionSyncQueueSize: 10
+          MsgSyncLowerBound: 50000000
+
+          fixedVelVar: 0.25
+          posVarScale: 5.
+          velVarScale: 100.
+          headingVarScale: 2.
+          headingOffsetDeg: 0.
+
+          attitudeFrame: "ned"
+          attitudeType: "yaw"
+          velocityFrame: "ned"
+          velocityType: "3d"
+          noiseModelAttitude: "cauchy"
+          noiseModelVelocity: "cauchy"
+          noiseModelPosition: "gemanmcclure"
+          robustParamPos: 2.5731
+          robustParamVel: 0.5
+          robustParamAtt: 0.5
+
+          ubloxPVTTopic: "/ublox/navpvt"
+
         LIOIntegrator:
           notIntegrating: false
           integratorPlugin: "LIOIntegrator"
@@ -61,7 +106,7 @@
           integrateGlobalPose: false
           odomPoseVar: [0.25, 0.25, 0.25, 0.25, 0.16, 0.16]
           noiseModelOdomPose: "Cauchy"
-          robustParamOdomPose: 0.5
+          robustParamOdomPose: 1.3737  #0.5
 
           N_SCAN: 16
           Horizon_SCAN: 1800
@@ -72,13 +117,13 @@
           edgeFeatureMinValidNum: 10
           surfFeatureMinValidNum: 100
           numberOfCores: 16
-          mappingProcessInterval: 0.15
+          mappingProcessInterval: 0.3
           varianceRoll: 0.01 # 5 deg
           variancePitch: 0.01
           varianceYaw: 0.01
           varianceX: 0.01
-          varianceY: 0.04
-          varianceZ: 0.04
+          varianceY: 0.01
+          varianceZ: 0.01
 
           surroundingKeyframeSearchRadius: 50.
           loopClosureEnableFlag: false

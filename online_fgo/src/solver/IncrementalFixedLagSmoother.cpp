@@ -173,7 +173,6 @@ namespace fgo::solvers {
             std::cout << std::endl;
         }
       //std::cout << "solve 2" <<std::endl;
-
         // Mark additional keys between the marginalized keys and the leaves
         std::set<gtsam::Key> additionalKeys;
         for(gtsam::Key key: marginalizableKeys) {
