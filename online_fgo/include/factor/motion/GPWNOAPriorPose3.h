@@ -190,7 +190,7 @@ namespace fgo::factor {
           if (H5) *H5 = Hv2 * H2v;
           if (H6) *H6 = Hv2 * H2w;
 
-          Vector err = (Vector(12) << (r - v1 * delta_t_), Jinv * v2 - v1).finished();
+            gtsam::Vector err = (gtsam::Vector(12) << (r - v1 * delta_t_), Jinv * v2 - v1).finished();
 
           return err;
         }
